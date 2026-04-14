@@ -6,3 +6,10 @@
 /captures
 .externalNativeBuild
 *.hprof
+
+# Gradle build
+**/build/
+
+# Opcional pero recomendado
+.gradle/
+local.properties

@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 data class MainUiState(
     val playerState: PlayerState = PlayerState(),
-    val activeCollection: Collection = CardDataSource.genesisCollection,
+    val activeCollection: CardCollection = CardDataSource.genesisCardCollection,
     val packDefinition: PackDefinition = PackDataSource.basicPack,
     // Pack opening session state
     val isOpeningPack: Boolean = false,
