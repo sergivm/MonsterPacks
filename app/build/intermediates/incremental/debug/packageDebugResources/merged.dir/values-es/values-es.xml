@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="already_max_tier">Ya estás en el nivel máximo.</string>
+    <string name="app_name">Monster Packs</string>
+    <string name="level_too_low">Nivel demasiado bajo para esta mejora.</string>
+    <string name="new_card">¡NUEVA!</string>
+    <string name="not_enough_resources">Recursos insuficientes.</string>
+    <string name="open_pack">Abrir un Sobre</string>
+    <string name="pack_summary">Resumen del Sobre</string>
+    <string name="save">Guardar</string>
+    <string name="settings_account">Cuenta</string>
+    <string name="settings_google_play">Google Play</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_privacy">Aviso de Privacidad</string>
+    <string name="settings_terms">Términos de Uso</string>
+    <string name="shop_bonus_pack">Sobre Bonus</string>
+    <string name="shop_claim">¡Reclamar!</string>
+    <string name="shop_level_required">Requiere Nivel %1$d</string>
+    <string name="shop_max">MÁX</string>
+    <string name="shop_upgrade_button">MEJORAR</string>
+    <string name="shop_upgrades">MEJORAS</string>
+    <string name="tab_collection">Colección</string>
+    <string name="tab_pack">Sobre</string>
+    <string name="tab_settings">Ajustes</string>
+    <string name="tab_shop">Tienda</string>
+    <string name="tap_to_continue">Toca para continuar</string>
+    <string name="upgrade_purchased">¡Mejora comprada!</string>
+    <string name="username_hint">Nombre de usuario</string>
+    <string name="username_note">Puedes cambiarlo una vez más tarde en Ajustes</string>
+    <string name="username_setup_title">Elige tu nombre de entrenador</string>
+    <string name="username_start">Empezar a Coleccionar</string>
+</resources>

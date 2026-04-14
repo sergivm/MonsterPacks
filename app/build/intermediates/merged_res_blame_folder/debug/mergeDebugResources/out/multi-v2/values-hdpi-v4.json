@@ -1,0 +1,20 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.sergivm.monsterpacks.app-mergeDebugResources-73:/values-hdpi-v4/values-hdpi-v4.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\SVM-1\\.gradle\\caches\\9.0.0\\transforms\\9e0a7c1d0ee7d86cf65d840cd3c6d2c6\\transformed\\appcompat-1.7.0\\res\\values-hdpi-v4\\values-hdpi-v4.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "6",
+                        "endColumns": "13",
+                        "endOffsets": "327"
+                    }
+                }
+            ]
+        }
+    ]
+}
