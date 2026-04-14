@@ -7,7 +7,7 @@ import kotlin.random.Random
 
 class GameEngineTest {
 
-    private val collection = CardDataSource.genesisCollection
+    private val collection = CardDataSource.genesisCardCollection
     private val basicPack  = PackDataSource.basicPack
 
     // ── rollPack ──────────────────────────────────────────────────────────────

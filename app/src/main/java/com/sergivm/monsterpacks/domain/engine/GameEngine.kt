@@ -41,7 +41,7 @@ object GameEngine {
      */
     fun rollPack(
         pack: PackDefinition,
-        collection: Collection,
+        collection: CardCollection,
         random: Random = Random.Default
     ): List<Card> {
         val drawnIds = mutableSetOf<Int>()
@@ -169,7 +169,7 @@ object GameEngine {
     }
 
     private fun buildPool(
-        collection: Collection,
+        collection: CardCollection,
         rarity: Rarity,
         typeFilter: List<CardType>?
     ): List<Card> {

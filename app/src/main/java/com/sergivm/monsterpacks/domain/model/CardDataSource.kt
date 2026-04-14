@@ -179,14 +179,14 @@ object CardDataSource {
         add(card(id++, 142, "Hydra",                     CardType.MYTHIC, Rarity.GOD,       null))
     }
 
-    val genesisCollection = Collection(
+    val genesisCardCollection = CardCollection(
         id = COLLECTION_GENESIS,
         name = "Genesis",
         coverRes = "collection_genesis_cover", // TODO: replace with final art
         cards = allCards
     )
 
-    val allCollections: List<Collection> = listOf(genesisCollection)
+    val allCardCollections: List<CardCollection> = listOf(genesisCardCollection)
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

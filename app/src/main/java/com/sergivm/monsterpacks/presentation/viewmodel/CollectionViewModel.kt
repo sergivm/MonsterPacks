@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 data class CollectionUiState(
     val playerState: PlayerState = PlayerState(),
-    val collection: Collection = CardDataSource.genesisCollection,
+    val collection: CardCollection = CardDataSource.genesisCardCollection,
     val sortedCards: List<Card> = emptyList(),
     val filteredCards: List<Card> = emptyList(),
     val activeRarityFilter: Set<Rarity> = emptySet(),
@@ -38,7 +38,7 @@ class CollectionViewModel @Inject constructor(
     init {
         repository.observePlayerState()
             .onEach { playerState ->
-                val sorted = GameEngine.sortForCollection(CardDataSource.genesisCollection.cards)
+                val sorted = GameEngine.sortForCollection(CardDataSource.genesisCardCollection.cards)
                 _uiState.update { state ->
                     state.copy(
                         playerState = playerState,
