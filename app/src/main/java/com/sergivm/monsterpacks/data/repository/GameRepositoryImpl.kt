@@ -41,9 +41,18 @@ class GameRepositoryImpl @Inject constructor(
         xp = xp,
         level = level,
         cardCopies = gson.fromJson(cardCopiesJson, mapType) ?: emptyMap(),
-        bonusPackReadyAtMs = bonusPackReadyAtMs,
-        basicPackUpgradeLevel = basicPackUpgradeLevel,
-        bonusPackUpgradeLevel = bonusPackUpgradeLevel
+        availablePacks = availablePacks,
+        maxPacks = maxPacks,
+        lastPackRegenTimeMs = lastPackRegenTimeMs,
+        freePackReadyAtMs = freePackReadyAtMs,
+        basicPackRarityLevel = basicPackRarityLevel,
+        basicPackCapacityLevel = basicPackCapacityLevel,
+        basicPackCardCountLevel = basicPackCardCountLevel,
+        basicPackXpLevel = basicPackXpLevel,
+        freePackCooldownLevel = freePackCooldownLevel,
+        freePackGemYieldLevel = freePackGemYieldLevel,
+        freePackCardCountLevel = freePackCardCountLevel,
+        freePackStoredLevel = freePackStoredLevel
     )
 
     private fun PlayerState.toEntity() = PlayerStateEntity(
@@ -55,8 +64,17 @@ class GameRepositoryImpl @Inject constructor(
         xp = xp,
         level = level,
         cardCopiesJson = gson.toJson(cardCopies),
-        bonusPackReadyAtMs = bonusPackReadyAtMs,
-        basicPackUpgradeLevel = basicPackUpgradeLevel,
-        bonusPackUpgradeLevel = bonusPackUpgradeLevel
+        availablePacks = availablePacks,
+        maxPacks = maxPacks,
+        lastPackRegenTimeMs = lastPackRegenTimeMs,
+        freePackReadyAtMs = freePackReadyAtMs,
+        basicPackRarityLevel = basicPackRarityLevel,
+        basicPackCapacityLevel = basicPackCapacityLevel,
+        basicPackCardCountLevel = basicPackCardCountLevel,
+        basicPackXpLevel = basicPackXpLevel,
+        freePackCooldownLevel = freePackCooldownLevel,
+        freePackGemYieldLevel = freePackGemYieldLevel,
+        freePackCardCountLevel = freePackCardCountLevel,
+        freePackStoredLevel = freePackStoredLevel
     )
 }

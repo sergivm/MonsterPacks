@@ -51,6 +51,15 @@ object GameEngine {
         return result.sortedBy { it.rarity.ordinal }
     }
 
+    /**
+     * Checks whether the Pack Upgrade Event fires for this Basic Pack opening.
+     * Returns the ID key of the upgraded pack type, or null if no event occurs.
+     */
+    fun checkSurpriseEvent(random: Random = Random.Default): String? {
+        if (random.nextFloat() > SURPRISE_EVENT_PROBABILITY) return null
+        return weightedRandom(SURPRISE_EVENT_WEIGHTS, random)
+    }
+
     // ── PlayerState Mutations ─────────────────────────────────────────────────
 
     /**
@@ -113,6 +122,34 @@ object GameEngine {
             level = newLevel,
             cardCopies = copies,
             availablePacks = newAvailablePacks
+        )
+    }
+
+    /**
+     * Attempts to set the username on first launch.
+     */
+    fun setUsername(state: PlayerState, username: String): PlayerState {
+        require(username.isNotBlank()) { "Username must not be blank." }
+        return state.copy(username = username.trim())
+    }
+
+    /**
+     * Attempts to change the username. Only allowed once.
+     */
+    fun changeUsername(state: PlayerState, newUsername: String): PlayerState {
+        if (state.usernameChanged) return state
+        require(newUsername.isNotBlank()) { "Username must not be blank." }
+        return state.copy(username = newUsername.trim(), usernameChanged = true)
+    }
+
+    // ── Collection Sorting ────────────────────────────────────────────────────
+
+    /**
+     * Sorts cards for the Collection screen.
+     */
+    fun sortForCollection(cards: List<Card>): List<Card> {
+        return cards.sortedWith(
+            compareBy({ it.rarity.ordinal }, { it.type.ordinal }, { it.collectionNumber })
         )
     }
 

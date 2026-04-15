@@ -53,12 +53,12 @@ fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Bonus Pack claim row
+            // Free Pack claim row
             item {
-                BonusPackRow(
-                    isReady = state.isBonusPackReady,
-                    cooldownRemainingMs = state.bonusPackCooldownRemainingMs,
-                    onClaim = { viewModel.claimBonusPack() }
+                FreePackRow(
+                    isReady = state.isFreePackReady,
+                    cooldownRemainingMs = state.freePackCooldownRemainingMs,
+                    onClaim = { viewModel.claimFreePack() }
                 )
             }
 
@@ -85,25 +85,19 @@ fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
         }
     }
 
-    // Purchase result snackbar
+    // Purchase result message (Snackbar or Toast logic could go here)
     state.purchaseResult?.let { result ->
-        val message = when (result) {
-            is UpgradeResult.Success          -> "Upgrade purchased!"
-            is UpgradeResult.InsufficientFunds -> "Not enough resources."
-            is UpgradeResult.LevelTooLow       -> "Level too low for this upgrade."
-            is UpgradeResult.AlreadyMaxTier    -> "Already at max tier."
-        }
         LaunchedEffect(result) {
-            // TODO: show snackbar properly via SnackbarHostState
+            // Clear result after it's processed
             viewModel.clearPurchaseResult()
         }
     }
 }
 
-// ── Bonus Pack Row ────────────────────────────────────────────────────────────
+// ── Free Pack Row ────────────────────────────────────────────────────────────
 
 @Composable
-private fun BonusPackRow(
+private fun FreePackRow(
     isReady: Boolean,
     cooldownRemainingMs: Long,
     onClaim: () -> Unit
@@ -118,15 +112,19 @@ private fun BonusPackRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Bonus Pack", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Free Pack", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (isReady) {
                 Text("Ready to claim!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             } else {
                 val totalSeconds = cooldownRemainingMs / 1000
-                val minutes = totalSeconds / 60
+                val totalMinutes = totalSeconds / 60
+                val hours = totalMinutes / 60
+                val minutes = totalMinutes % 60
                 val seconds = totalSeconds % 60
+                
+                val timeText = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}:${seconds.toString().padStart(2, '0')}"
                 Text(
-                    "Ready in ${minutes}:${seconds.toString().padStart(2, '0')}",
+                    "Ready in $timeText",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -152,8 +150,25 @@ private fun UpgradeRow(
     playerGems: Long,
     onPurchase: () -> Unit
 ) {
-    val locked = playerLevel < upgrade.requiredLevel
-    val alpha = if (locked) 0.4f else 1f
+    val levelLocked = playerLevel < upgrade.requiredLevel
+    
+    val hasEnough = when (val cost = upgrade.cost) {
+        is PackCost.Coins -> playerCoins >= cost.amount
+        is PackCost.Gems  -> playerGems >= cost.amount
+        is PackCost.Both  -> playerCoins >= cost.coins && playerGems >= cost.gems
+    }
+
+    val alpha = if (levelLocked) 0.4f else 1f
+    
+    // Point 5: reddish tint if unlocked but not enough resources
+    val buttonColor = if (!levelLocked && !hasEnough) {
+        ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF922B21), // Dark Reddish
+            contentColor = Color.White
+        )
+    } else {
+        ButtonDefaults.buttonColors()
+    }
 
     Row(
         modifier = Modifier
@@ -178,11 +193,12 @@ private fun UpgradeRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
             )
-            if (locked) {
+            if (levelLocked) {
                 Text(
                     "Requires Level ${upgrade.requiredLevel}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    fontSize = 10.sp
                 )
             }
         }
@@ -200,8 +216,9 @@ private fun UpgradeRow(
         } else {
             Button(
                 onClick = onPurchase,
-                enabled = !locked,
+                enabled = !levelLocked,
                 shape = RoundedCornerShape(8.dp),
+                colors = buttonColor,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -210,7 +227,8 @@ private fun UpgradeRow(
                     Text(
                         formatCost(upgrade.cost),
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp
+                        fontSize = 10.sp,
+                        color = if (!levelLocked && !hasEnough) Color.White.copy(alpha = 0.8f) else Color.Unspecified
                     )
                 }
             }

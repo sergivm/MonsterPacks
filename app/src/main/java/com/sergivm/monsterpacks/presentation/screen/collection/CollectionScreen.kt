@@ -1,9 +1,11 @@
 package com.sergivm.monsterpacks.presentation.screen.collection
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,15 +19,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.domain.model.Card
+import com.sergivm.monsterpacks.domain.model.CardType
 import com.sergivm.monsterpacks.domain.model.Rarity
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
+import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
 import com.sergivm.monsterpacks.presentation.viewmodel.CollectionViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
+    val sheetState = rememberModalBottomSheetState()
+    var showFilters by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
         Column {
@@ -35,7 +42,7 @@ fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
             CollectionHeader(
                 collectionName = state.collection.name,
                 progressByRarity = state.progressByRarity,
-                onFilterClick = { /* TODO: show filter bottom sheet */ }
+                onFilterClick = { showFilters = true }
             )
 
             // Card grid
@@ -58,6 +65,23 @@ fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
             }
         }
 
+        // Filter Bottom Sheet (Point 6)
+        if (showFilters) {
+            ModalBottomSheet(
+                onDismissRequest = { showFilters = false },
+                sheetState = sheetState,
+                containerColor = SurfaceDark
+            ) {
+                FilterSheetContent(
+                    activeRarities = state.activeRarityFilter,
+                    activeTypes = state.activeTypeFilter,
+                    onToggleRarity = { viewModel.toggleRarityFilter(it) },
+                    onToggleType = { viewModel.toggleTypeFilter(it) },
+                    onClear = { viewModel.clearFilters() }
+                )
+            }
+        }
+
         // Card detail dialog
         state.selectedCard?.let { card ->
             CardDetailDialog(
@@ -68,6 +92,122 @@ fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
             )
         }
     }
+}
+
+// ── Filter Sheet Content ──────────────────────────────────────────────────────
+
+@Composable
+private fun FilterSheetContent(
+    activeRarities: Set<Rarity>,
+    activeTypes: Set<CardType>,
+    onToggleRarity: (Rarity) -> Unit,
+    onToggleType: (CardType) -> Unit,
+    onClear: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Filters", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onClear) { Text("Clear All") }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Text("RARITY", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Rarity.values().forEach { rarity ->
+                FilterChip(
+                    text = rarity.displayName,
+                    icon = rarity.icon,
+                    selected = rarity in activeRarities,
+                    color = rarity.color,
+                    onClick = { onToggleRarity(rarity) }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Text("TYPE", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            CardType.values().forEach { type ->
+                FilterChip(
+                    text = type.displayName,
+                    icon = null,
+                    selected = type in activeTypes,
+                    color = type.color,
+                    onClick = { onToggleType(type) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterChip(
+    text: String,
+    icon: String?,
+    selected: Boolean,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = if (selected) color.copy(alpha = 0.2f) else SurfaceVariantDark,
+        border = if (selected) borderStroke(2.dp, color) else null,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Text(icon, fontSize = 14.sp)
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) color else Color.White,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+@Composable
+private fun borderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = 
+    androidx.compose.foundation.BorderStroke(width, color)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FlowRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    content: @Composable () -> Unit
+) {
+    androidx.compose.foundation.layout.FlowRow(
+        modifier = modifier,
+        horizontalArrangement = horizontalArrangement,
+        content = { content() }
+    )
 }
 
 // ── Collection Header ─────────────────────────────────────────────────────────
@@ -163,7 +303,7 @@ private fun CollectionCardCell(
         } else {
             // Locked silhouette
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("■", color = Color.DarkGray, fontSize = 24.sp)  // TODO: rarity-shaped silhouette
+                Text("■", color = Color.DarkGray, fontSize = 24.sp)
                 Text(
                     text = "#${card.collectionNumber.toString().padStart(3,'0')}",
                     style = MaterialTheme.typography.labelSmall,

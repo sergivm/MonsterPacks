@@ -49,13 +49,13 @@ class MainViewModel @Inject constructor(
         val collection = _uiState.value.activeCollection
 
         // Check surprise event (only applies to BASIC packs)
-        val surpriseId = if (pack.type == PackType.BASIC) {
+        val surpriseId: String? = if (pack.type == PackType.BASIC) {
             GameEngine.checkSurpriseEvent()
         } else null
 
         // Determine effective pack definition
         val effectivePack = if (surpriseId != null) {
-            resolveSurpisePack(surpriseId, pack) ?: pack
+            resolveSurprisePack(surpriseId, pack) ?: pack
         } else pack
 
         val cards = GameEngine.rollPack(effectivePack, collection)
@@ -115,7 +115,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    private fun resolveSurpisePack(surpriseId: String, fallback: PackDefinition): PackDefinition? {
+    private fun resolveSurprisePack(surpriseId: String, fallback: PackDefinition): PackDefinition? {
         return when (surpriseId) {
             "type_themed"     -> PackDataSource.typeThemedPacks.random()
             "rarity_boosted"  -> PackDataSource.rareBoostedPack

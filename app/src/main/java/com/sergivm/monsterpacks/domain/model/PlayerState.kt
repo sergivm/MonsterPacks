@@ -2,23 +2,6 @@ package com.sergivm.monsterpacks.domain.model
 
 /**
  * The full mutable state of the player. Persisted via Room.
- *
- * @param username                Player name entered on first launch.
- * @param usernameChanged         True once the username has been changed. Blocks further changes.
- * @param coins                   Current coin balance.
- * @param gems                    Current gem balance.
- * @param xp                      Total accumulated XP.
- * @param level                   Current player level (derived from XP at load time).
- * @param cardCopies              Map of cardId -> copy count. A count of 0 means locked.
- * 
- * @param availablePacks          Number of basic packs currently available to open.
- * @param maxPacks                Maximum capacity for basic packs (upgradable).
- * @param lastPackRegenTimeMs     Epoch milliseconds when the last pack was regenerated.
- * 
- * @param freePackReadyAtMs       Epoch milliseconds when the next Free Pack (Bonus) is ready.
- *                                Null if no cooldown has started.
- * @param basicPackUpgradeLevel   Current upgrade tier for the Basic Pack.
- * @param bonusPackUpgradeLevel   Current upgrade tier for the Bonus Pack (Free Pack).
  */
 data class PlayerState(
     val username: String = "",
@@ -34,10 +17,19 @@ data class PlayerState(
     val maxPacks: Int = 50,
     val lastPackRegenTimeMs: Long = System.currentTimeMillis(),
     
-    // Free Pack System (renamed from bonusPack)
+    // Free Pack System
     val freePackReadyAtMs: Long? = null,
-    val basicPackUpgradeLevel: Int = 0,
-    val bonusPackUpgradeLevel: Int = 0
+    
+    // Upgrade Levels
+    val basicPackRarityLevel: Int = 0,    // Increases drop weights for EPIC+
+    val basicPackCapacityLevel: Int = 0,  // Increases maxPacks (Initial 50)
+    val basicPackCardCountLevel: Int = 0, // Increases cards per pack (Initial 5, Max 10)
+    val basicPackXpLevel: Int = 0,        // Increases XP from basic packs
+    
+    val freePackCooldownLevel: Int = 0,
+    val freePackGemYieldLevel: Int = 0,
+    val freePackCardCountLevel: Int = 0,
+    val freePackStoredLevel: Int = 0
 ) {
     /** Returns true if the player has not yet set a username (first launch). */
     val needsUsername: Boolean get() = username.isBlank()
