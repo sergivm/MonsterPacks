@@ -2,6 +2,7 @@ package com.sergivm.monsterpacks.presentation.screen.main
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -28,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.domain.engine.GameEngine
 import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PlayerState
 import com.sergivm.monsterpacks.domain.model.Rarity
@@ -37,6 +40,8 @@ import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
 import com.sergivm.monsterpacks.presentation.viewmodel.MainViewModel
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 @Composable
 fun MainScreen(
@@ -46,6 +51,7 @@ fun MainScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
+    // Fixed: Logic to only show setup if username is truly blank
     if (state.isFirstLaunch) {
         UsernameSetupScreen(onConfirm = { viewModel.setUsername(it) })
         return
@@ -114,6 +120,17 @@ private fun PackIdleScreen(
     packName: String,
     onOpenPack: () -> Unit
 ) {
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(playerState.availablePacks, playerState.maxPacks) {
+        while (playerState.availablePacks < playerState.maxPacks) {
+            delay(1000)
+            currentTime = System.currentTimeMillis()
+        }
+    }
+
+    val regenInterval = GameEngine.getPackRegenIntervalMs(playerState.basicPackRegenLevel)
+    val remainingRegenMs = playerState.nextPackRegenRemainingMs(currentTime, regenInterval)
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -122,9 +139,10 @@ private fun PackIdleScreen(
 
         Spacer(Modifier.weight(0.1f))
 
-        PackCounter(
+        PackCounterWithTimer(
             available = playerState.availablePacks,
-            max = playerState.maxPacks
+            max = playerState.maxPacks,
+            remainingMs = remainingRegenMs
         )
 
         Spacer(Modifier.height(24.dp))
@@ -195,28 +213,42 @@ private fun PackIdleScreen(
 }
 
 @Composable
-private fun PackCounter(available: Int, max: Int) {
-    Surface(
-        color = SurfaceVariantDark,
-        shape = CircleShape,
-        modifier = Modifier.padding(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+private fun PackCounterWithTimer(available: Int, max: Int, remainingMs: Long) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            color = SurfaceVariantDark,
+            shape = CircleShape,
+            modifier = Modifier.padding(8.dp)
         ) {
-            Text("📦", fontSize = 16.sp)
-            Spacer(Modifier.width(8.dp))
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("📦", fontSize = 16.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "$available / $max",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (available > 0) Color.White else Color.Red
+                )
+                Text(
+                    text = " PACKS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+        }
+        
+        if (available < max && remainingMs > 0) {
+            val totalSeconds = remainingMs / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
             Text(
-                text = "$available / $max",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (available > 0) Color.White else Color.Red
-            )
-            Text(
-                text = " PACKS",
+                text = "Next in ${minutes}:${seconds.toString().padStart(2, '0')}",
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -234,72 +266,131 @@ private fun CardRevealScreen(
     playerState: PlayerState,
     onTap: () -> Unit
 ) {
-    // Screen shake for God/Legendary
     val shakeAnim = remember { Animatable(0f) }
+    
+    // Particle system state
+    val particles = remember { mutableStateListOf<Particle>() }
+    
     LaunchedEffect(card) {
+        // Screen shake for God/Legendary
         if (card.rarity >= Rarity.LEGENDARY) {
             repeat(6) {
                 shakeAnim.animateTo(if (it % 2 == 0) 10f else -10f, tween(50))
             }
             shakeAnim.animateTo(0f, tween(50))
         }
+        
+        // Spawn particles for high rarity
+        if (card.rarity >= Rarity.SPECIAL) {
+            repeat(30) {
+                particles.add(Particle(
+                    color = card.rarity.color,
+                    velocity = Offset(Random.nextFloat() * 20f - 10f, Random.nextFloat() * 20f - 10f)
+                ))
+            }
+        }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable { onTap() }
-            .graphicsLayer { translationX = shakeAnim.value },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        MonsterPacksTopBar(playerState = playerState)
-
-        Spacer(Modifier.weight(0.05f))
-
-        Text(
-            text = "CARD ${cardIndex + 1} / $totalCards",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray,
-            letterSpacing = 2.sp
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        AnimatedContent(
-            targetState = card,
-            transitionSpec = {
-                val scaleIn = if (targetState.rarity >= Rarity.LEGENDARY) {
-                    scaleIn(initialScale = 1.5f, animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
-                } else {
-                    slideInHorizontally { width -> width } + fadeIn()
+    // Particle update loop
+    LaunchedEffect(Unit) {
+        while(true) {
+            withFrameMillis { 
+                val toRemove = mutableListOf<Particle>()
+                particles.forEach { 
+                    it.update() 
+                    if (it.alpha <= 0f) toRemove.add(it)
                 }
-                
-                scaleIn togetherWith (slideOutHorizontally { width -> -width } + fadeOut())
-            },
-            label = "CardSlide"
-        ) { currentCard ->
-            CardView(
-                card = currentCard,
-                isNewCard = isNewCard,
-                copyCount = copyCount,
-                modifier = Modifier
-                    .fillMaxWidth(0.75f)
-                    .aspectRatio(0.65f)
-            )
+                particles.removeAll(toRemove)
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Particle Layer
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            particles.forEach { p ->
+                drawCircle(
+                    color = p.color.copy(alpha = p.alpha),
+                    radius = p.radius,
+                    center = Offset(size.width / 2 + p.pos.x, size.height / 2 + p.pos.y)
+                )
+            }
         }
 
-        Spacer(Modifier.weight(0.1f))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable { onTap() }
+                .graphicsLayer { translationX = shakeAnim.value },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            MonsterPacksTopBar(playerState = playerState)
 
-        Text(
-            text = "TAP TO CONTINUE",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.4f),
-            letterSpacing = 1.sp
-        )
+            Spacer(Modifier.weight(0.05f))
 
-        Spacer(Modifier.height(32.dp))
+            Text(
+                text = "CARD ${cardIndex + 1} / $totalCards",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                letterSpacing = 2.sp
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            AnimatedContent(
+                targetState = card,
+                transitionSpec = {
+                    val scaleIn = if (targetState.rarity >= Rarity.LEGENDARY) {
+                        scaleIn(initialScale = 1.5f, animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
+                    } else {
+                        slideInHorizontally { width -> width } + fadeIn()
+                    }
+                    
+                    scaleIn togetherWith (slideOutHorizontally { width -> -width } + fadeOut())
+                },
+                label = "CardSlide"
+            ) { currentCard ->
+                CardView(
+                    card = currentCard,
+                    isNewCard = isNewCard,
+                    copyCount = copyCount,
+                    modifier = Modifier
+                        .fillMaxWidth(0.75f)
+                        .aspectRatio(0.65f)
+                )
+            }
+
+            Spacer(Modifier.weight(0.1f))
+
+            Text(
+                text = "TAP TO CONTINUE",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.4f),
+                letterSpacing = 1.sp
+            )
+
+            Spacer(Modifier.height(32.dp))
+        }
     }
 }
+
+// ── Particles ─────────────────────────────────────────────────────────────────
+
+private class Particle(
+    val color: Color,
+    var pos: Offset = Offset(0f, 0f),
+    var velocity: Offset,
+    var alpha: Float = 1f,
+    val radius: Float = Random.nextFloat() * 8f + 4f
+) {
+    fun update() {
+        pos += velocity
+        velocity *= 0.98f // friction
+        alpha -= 0.02f // fade
+    }
+}
+
+// TODO: Future improvement - vary particle effects (shape, behavior) based on card.type (e.g. fire for INFERNAL, stars for CELESTIAL)
 
 // ── Card View ─────────────────────────────────────────────────────────────────
 
@@ -315,7 +406,6 @@ fun CardView(
         context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
     }
 
-    // Shimmer animation for high rarity
     val infiniteTransition = rememberInfiniteTransition(label = "Shimmer")
     val shimmerX by infiniteTransition.animateFloat(
         initialValue = -500f,
@@ -342,11 +432,10 @@ fun CardView(
                 .drawWithContent {
                     drawContent()
                     if (card.rarity >= Rarity.SPECIAL) {
-                        // Diagonal Shimmer overlay
                         val brush = Brush.linearGradient(
                             colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.3f), Color.Transparent),
-                            start = androidx.compose.ui.geometry.Offset(shimmerX, shimmerX),
-                            end = androidx.compose.ui.geometry.Offset(shimmerX + 150f, shimmerX + 150f)
+                            start = Offset(shimmerX, shimmerX),
+                            end = Offset(shimmerX + 150f, shimmerX + 150f)
                         )
                         drawRect(brush = brush, blendMode = BlendMode.Overlay)
                     }
@@ -418,7 +507,6 @@ fun CardView(
             }
         }
 
-        // Animated "New!" Badge
         if (isNewCard) {
             val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
             val scale by pulseTransition.animateFloat(
@@ -492,7 +580,7 @@ private fun SummaryScreen(
             cards.forEachIndexed { index, card ->
                 var visible by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
-                    kotlinx.coroutines.delay(100L * index)
+                    delay(100L * index)
                     visible = true
                 }
 

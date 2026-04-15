@@ -24,7 +24,9 @@ data class MainUiState(
 ) {
     val currentCard: Card? get() = drawnCards.getOrNull(currentCardIndex)
     val isLastCard: Boolean get() = currentCardIndex >= drawnCards.lastIndex
-    val isFirstLaunch: Boolean get() = playerState.needsUsername
+    
+    // Updated logic: Only show setup if username is blank AND we haven't set it in this session
+    val isFirstLaunch: Boolean get() = playerState.username.isBlank()
 }
 
 @HiltViewModel
@@ -38,22 +40,33 @@ class MainViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             repository.observePlayerState().collect { playerState ->
-                _uiState.update { it.copy(playerState = playerState) }
+                val now = System.currentTimeMillis()
+                // Auto-refresh packs when state is observed
+                val refreshedState = GameEngine.refreshPackCount(playerState, now)
+                if (refreshedState != playerState) {
+                    repository.savePlayerState(refreshedState)
+                }
+                _uiState.update { it.copy(playerState = refreshedState) }
             }
         }
     }
 
-    /** Called when the player taps "Open a Pack". Checks for Surprise Event, then rolls cards. */
-    fun openPack() {
-        val pack = _uiState.value.packDefinition
-        val collection = _uiState.value.activeCollection
+    /** 
+     * Opens a specific pack. 
+     * @param customPack If non-null, opens this instead of the default basic pack (used for Free Pack).
+     */
+    fun openPack(customPack: PackDefinition? = null) {
+        val state = _uiState.value
+        val pack = customPack ?: state.packDefinition
+        val collection = state.activeCollection
 
-        // Check surprise event (only applies to BASIC packs)
-        val surpriseId: String? = if (pack.type == PackType.BASIC) {
+        if (customPack == null && state.playerState.availablePacks <= 0) return
+
+        // Check surprise event (only applies to default BASIC packs)
+        val surpriseId: String? = if (customPack == null && pack.type == PackType.BASIC) {
             GameEngine.checkSurpriseEvent()
         } else null
 
-        // Determine effective pack definition
         val effectivePack = if (surpriseId != null) {
             resolveSurprisePack(surpriseId, pack) ?: pack
         } else pack
@@ -72,7 +85,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** Called when the player taps to reveal the next card. */
     fun revealNextCard() {
         val state = _uiState.value
         if (state.isLastCard) {
@@ -82,7 +94,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** Called when the player taps "Save" on the summary screen. */
     fun saveSession() {
         val state = _uiState.value
         if (state.sessionSaved) return
@@ -91,7 +102,8 @@ class MainViewModel @Inject constructor(
             val updated = GameEngine.applyPackResult(
                 state = state.playerState,
                 cards = state.drawnCards,
-                xpReward = state.packDefinition.xpReward
+                xpReward = state.packDefinition.xpReward,
+                isFreePack = state.surprisePackId == null && state.drawnCards.size == 3 // Simple check for free pack
             )
             repository.savePlayerState(updated)
             _uiState.update {
@@ -107,11 +119,11 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** Sets username on first launch. */
     fun setUsername(username: String) {
         viewModelScope.launch {
             val updated = GameEngine.setUsername(_uiState.value.playerState, username)
             repository.savePlayerState(updated)
+            // The flow will naturally update the UI via observation
         }
     }
 

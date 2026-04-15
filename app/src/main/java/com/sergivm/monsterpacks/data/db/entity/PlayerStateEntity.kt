@@ -29,6 +29,7 @@ data class PlayerStateEntity(
     val basicPackRarityLevel: Int = 0,
     val basicPackCapacityLevel: Int = 0,
     val basicPackCardCountLevel: Int = 0,
+    val basicPackRegenLevel: Int = 0,
     val basicPackXpLevel: Int = 0,
     
     val freePackCooldownLevel: Int = 0,
