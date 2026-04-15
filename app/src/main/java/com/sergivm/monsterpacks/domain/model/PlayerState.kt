@@ -10,10 +10,15 @@ package com.sergivm.monsterpacks.domain.model
  * @param xp                      Total accumulated XP.
  * @param level                   Current player level (derived from XP at load time).
  * @param cardCopies              Map of cardId -> copy count. A count of 0 means locked.
- * @param bonusPackReadyAtMs      Epoch milliseconds when the next Bonus Pack is ready.
+ * 
+ * @param availablePacks          Number of basic packs currently available to open.
+ * @param maxPacks                Maximum capacity for basic packs (upgradable).
+ * @param lastPackRegenTimeMs     Epoch milliseconds when the last pack was regenerated.
+ * 
+ * @param freePackReadyAtMs       Epoch milliseconds when the next Free Pack (Bonus) is ready.
  *                                Null if no cooldown has started.
  * @param basicPackUpgradeLevel   Current upgrade tier for the Basic Pack.
- * @param bonusPackUpgradeLevel   Current upgrade tier for the Bonus Pack.
+ * @param bonusPackUpgradeLevel   Current upgrade tier for the Bonus Pack (Free Pack).
  */
 data class PlayerState(
     val username: String = "",
@@ -23,7 +28,14 @@ data class PlayerState(
     val xp: Long = 0L,
     val level: Int = 1,
     val cardCopies: Map<Int, Int> = emptyMap(),
-    val bonusPackReadyAtMs: Long? = null,
+    
+    // Pack Limit System
+    val availablePacks: Int = 50,
+    val maxPacks: Int = 50,
+    val lastPackRegenTimeMs: Long = System.currentTimeMillis(),
+    
+    // Free Pack System (renamed from bonusPack)
+    val freePackReadyAtMs: Long? = null,
     val basicPackUpgradeLevel: Int = 0,
     val bonusPackUpgradeLevel: Int = 0
 ) {
@@ -36,12 +48,12 @@ data class PlayerState(
     /** Returns true if the player owns at least one copy of the given card. */
     fun hasCard(cardId: Int): Boolean = copiesOf(cardId) > 0
 
-    /** Returns true if the Bonus Pack is currently available to open. */
-    fun isBonusPackReady(nowMs: Long): Boolean =
-        bonusPackReadyAtMs == null || nowMs >= bonusPackReadyAtMs
+    /** Returns true if the Free Pack is currently available to open. */
+    fun isFreePackReady(nowMs: Long): Boolean =
+        freePackReadyAtMs == null || nowMs >= freePackReadyAtMs
 
-    /** Returns milliseconds remaining until Bonus Pack is ready. 0 if already ready. */
-    fun bonusPackCooldownRemainingMs(nowMs: Long): Long =
-        if (isBonusPackReady(nowMs)) 0L
-        else (bonusPackReadyAtMs!! - nowMs).coerceAtLeast(0L)
+    /** Returns milliseconds remaining until Free Pack is ready. 0 if already ready. */
+    fun freePackCooldownRemainingMs(nowMs: Long): Long =
+        if (isFreePackReady(nowMs)) 0L
+        else (freePackReadyAtMs!! - nowMs).coerceAtLeast(0L)
 }
