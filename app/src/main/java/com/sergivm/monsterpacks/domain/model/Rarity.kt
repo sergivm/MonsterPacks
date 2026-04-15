@@ -12,8 +12,7 @@ enum class Rarity(
     val color: Color,
     val coinReward: Int,
     val gemReward: Int,
-    // Base drop weight for free-roll slots. Normalised at runtime.
-    val baseDropWeight: Float
+    val baseDropWeight: Float // Base drop weight for free-roll slots. Normalised at runtime.
 ) {
     COMMON(
         displayName = "Common",
@@ -21,7 +20,7 @@ enum class Rarity(
         color = Color(0xFF6C757D),
         coinReward = 1,
         gemReward = 0,
-        baseDropWeight = 58f
+        baseDropWeight = 52f
     ),
     RARE(
         displayName = "Rare",
@@ -37,7 +36,7 @@ enum class Rarity(
         color = Color(0xFF7D3C98),
         coinReward = 10,
         gemReward = 0,
-        baseDropWeight = 5f
+        baseDropWeight = 10f
     ),
     SPECIAL(
         displayName = "Special",
@@ -45,7 +44,7 @@ enum class Rarity(
         color = Color(0xFFB7950B),
         coinReward = 100,
         gemReward = 10,
-        baseDropWeight = 1f
+        baseDropWeight = 2f
     ),
     LEGENDARY(
         displayName = "Legendary",
@@ -53,7 +52,7 @@ enum class Rarity(
         color = Color(0xFFC0392B),
         coinReward = 500,
         gemReward = 50,
-        baseDropWeight = 0.1f
+        baseDropWeight = 0.5f
     ),
     GOD(
         displayName = "God",
@@ -61,7 +60,7 @@ enum class Rarity(
         color = Color(0xFF1A5276),
         coinReward = 2000,
         gemReward = 200,
-        baseDropWeight = 0.01f
+        baseDropWeight = 0.1f
     );
 
     /** Returns true for rarities that can have a text description on the card. */
