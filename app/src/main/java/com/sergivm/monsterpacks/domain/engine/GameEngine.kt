@@ -14,8 +14,8 @@ object GameEngine {
     /** Base probability (0..1) that a Basic Pack triggers a Surprise upgrade event. */
     const val SURPRISE_EVENT_PROBABILITY = 0.005f
 
-    /** Time in milliseconds to regenerate one pack (30 minutes = 2 per hour). */
-    val PACK_REGEN_TIME_MS = TimeUnit.MINUTES.toMillis(30)
+    /** Base time to regenerate one pack (30 minutes). */
+    private val BASE_PACK_REGEN_TIME_MS = TimeUnit.MINUTES.toMillis(30)
 
     /** Weighted chances for each surprise result. Weights are relative, not percentages. */
     val SURPRISE_EVENT_WEIGHTS: Map<String, Float> = mapOf(
@@ -63,6 +63,14 @@ object GameEngine {
     // ── PlayerState Mutations ─────────────────────────────────────────────────
 
     /**
+     * Returns the current regeneration interval based on upgrade level.
+     * Each level reduces the time by 2 minutes (30, 28, 26, 24, 22, 20).
+     */
+    fun getPackRegenIntervalMs(regenLevel: Int): Long {
+        return BASE_PACK_REGEN_TIME_MS - (regenLevel * TimeUnit.MINUTES.toMillis(2))
+    }
+
+    /**
      * Updates [PlayerState] by calculating regenerated packs since [lastPackRegenTimeMs].
      */
     fun refreshPackCount(state: PlayerState, nowMs: Long): PlayerState {
@@ -70,13 +78,14 @@ object GameEngine {
             return state.copy(lastPackRegenTimeMs = nowMs)
         }
 
+        val interval = getPackRegenIntervalMs(state.basicPackRegenLevel)
         val timePassed = nowMs - state.lastPackRegenTimeMs
-        val packsToAdd = (timePassed / PACK_REGEN_TIME_MS).toInt()
+        val packsToAdd = (timePassed / interval).toInt()
         
         if (packsToAdd <= 0) return state
 
         val newCount = (state.availablePacks + packsToAdd).coerceAtMost(state.maxPacks)
-        val leftoverTime = timePassed % PACK_REGEN_TIME_MS
+        val leftoverTime = timePassed % interval
         val newRegenTime = nowMs - leftoverTime
 
         return state.copy(

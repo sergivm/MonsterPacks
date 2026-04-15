@@ -2,6 +2,7 @@ package com.sergivm.monsterpacks.presentation.screen.main
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,10 +14,15 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -24,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PlayerState
+import com.sergivm.monsterpacks.domain.model.Rarity
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.screen.UsernameSetupScreen
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
@@ -115,7 +122,6 @@ private fun PackIdleScreen(
 
         Spacer(Modifier.weight(0.1f))
 
-        // Point 10: Pack Counter
         PackCounter(
             available = playerState.availablePacks,
             max = playerState.maxPacks
@@ -123,7 +129,6 @@ private fun PackIdleScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Pack visual placeholder with simple "float" animation
         val infiniteTransition = rememberInfiniteTransition(label = "PackFloat")
         val offsetY by infiniteTransition.animateFloat(
             initialValue = -10f,
@@ -229,10 +234,22 @@ private fun CardRevealScreen(
     playerState: PlayerState,
     onTap: () -> Unit
 ) {
+    // Screen shake for God/Legendary
+    val shakeAnim = remember { Animatable(0f) }
+    LaunchedEffect(card) {
+        if (card.rarity >= Rarity.LEGENDARY) {
+            repeat(6) {
+                shakeAnim.animateTo(if (it % 2 == 0) 10f else -10f, tween(50))
+            }
+            shakeAnim.animateTo(0f, tween(50))
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .clickable { onTap() },
+            .clickable { onTap() }
+            .graphicsLayer { translationX = shakeAnim.value },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         MonsterPacksTopBar(playerState = playerState)
@@ -248,12 +265,16 @@ private fun CardRevealScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Point 3: Simple Card Entry Animation
         AnimatedContent(
             targetState = card,
             transitionSpec = {
-                (slideInHorizontally { width -> width } + fadeIn()).togetherWith(
-                    slideOutHorizontally { width -> -width } + fadeOut())
+                val scaleIn = if (targetState.rarity >= Rarity.LEGENDARY) {
+                    scaleIn(initialScale = 1.5f, animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
+                } else {
+                    slideInHorizontally { width -> width } + fadeIn()
+                }
+                
+                scaleIn togetherWith (slideOutHorizontally { width -> -width } + fadeOut())
             },
             label = "CardSlide"
         ) { currentCard ->
@@ -289,6 +310,20 @@ fun CardView(
     copyCount: Int,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val imageResId = remember(card.imageRes) {
+        context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
+    }
+
+    // Shimmer animation for high rarity
+    val infiniteTransition = rememberInfiniteTransition(label = "Shimmer")
+    val shimmerX by infiniteTransition.animateFloat(
+        initialValue = -500f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing), RepeatMode.Restart),
+        label = "ShimmerX"
+    )
+
     Box(modifier = modifier) {
         Column(
             modifier = Modifier
@@ -299,7 +334,23 @@ fun CardView(
                         colors = listOf(card.type.color.copy(alpha = 0.9f), card.type.color.copy(alpha = 0.4f))
                     )
                 )
-                .border(2.dp, card.rarity.color.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                .border(
+                    width = if (card.rarity >= Rarity.SPECIAL) 3.dp else 2.dp,
+                    color = card.rarity.color.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .drawWithContent {
+                    drawContent()
+                    if (card.rarity >= Rarity.SPECIAL) {
+                        // Diagonal Shimmer overlay
+                        val brush = Brush.linearGradient(
+                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.3f), Color.Transparent),
+                            start = androidx.compose.ui.geometry.Offset(shimmerX, shimmerX),
+                            end = androidx.compose.ui.geometry.Offset(shimmerX + 150f, shimmerX + 150f)
+                        )
+                        drawRect(brush = brush, blendMode = BlendMode.Overlay)
+                    }
+                }
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -321,11 +372,20 @@ fun CardView(
                     .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "[ ${card.imageRes} ]",
-                    color = Color.White.copy(alpha = 0.3f),
-                    style = MaterialTheme.typography.labelMedium
-                )
+                if (imageResId != 0) {
+                    Image(
+                        painter = painterResource(id = imageResId),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = "[ Missing Art ]",
+                        color = Color.White.copy(alpha = 0.3f),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
 
             Spacer(Modifier.height(12.dp))
@@ -360,14 +420,11 @@ fun CardView(
 
         // Animated "New!" Badge
         if (isNewCard) {
-            val infiniteTransition = rememberInfiniteTransition(label = "NewPulse")
-            val scale by infiniteTransition.animateFloat(
+            val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
+            val scale by pulseTransition.animateFloat(
                 initialValue = 1f,
                 targetValue = 1.15f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(600, easing = FastOutSlowInEasing),
-                    repeatMode = RepeatMode.Reverse
-                ),
+                animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
                 label = "Scale"
             )
 
@@ -428,7 +485,6 @@ private fun SummaryScreen(
 
         Spacer(Modifier.height(32.dp))
 
-        // Staggered Entrance Animation for cards
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -466,6 +522,11 @@ private fun SummaryScreen(
 
 @Composable
 private fun SummaryCardCell(card: Card, isNew: Boolean) {
+    val context = LocalContext.current
+    val imageResId = remember(card.imageRes) {
+        context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
+    }
+
     Box(
         modifier = Modifier
             .aspectRatio(0.65f)
@@ -474,6 +535,16 @@ private fun SummaryCardCell(card: Card, isNew: Boolean) {
             .border(1.dp, card.rarity.color.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.Center
     ) {
+        if (imageResId != 0) {
+            Image(
+                painter = painterResource(id = imageResId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alpha = 0.4f
+            )
+        }
+
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
             Text(card.rarity.icon, fontSize = 16.sp)
             Spacer(Modifier.height(4.dp))

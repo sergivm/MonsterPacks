@@ -24,6 +24,7 @@ data class PlayerState(
     val basicPackRarityLevel: Int = 0,    // Increases drop weights for EPIC+
     val basicPackCapacityLevel: Int = 0,  // Increases maxPacks (Initial 50)
     val basicPackCardCountLevel: Int = 0, // Increases cards per pack (Initial 5, Max 10)
+    val basicPackRegenLevel: Int = 0,     // Reduces time between pack regeneration
     val basicPackXpLevel: Int = 0,        // Increases XP from basic packs
     
     val freePackCooldownLevel: Int = 0,
@@ -48,4 +49,11 @@ data class PlayerState(
     fun freePackCooldownRemainingMs(nowMs: Long): Long =
         if (isFreePackReady(nowMs)) 0L
         else (freePackReadyAtMs!! - nowMs).coerceAtLeast(0L)
+        
+    /** Returns milliseconds remaining until next basic pack is regenerated. */
+    fun nextPackRegenRemainingMs(nowMs: Long, regenIntervalMs: Long): Long {
+        if (availablePacks >= maxPacks) return 0L
+        val elapsed = nowMs - lastPackRegenTimeMs
+        return (regenIntervalMs - (elapsed % regenIntervalMs)).coerceAtLeast(0L)
+    }
 }
