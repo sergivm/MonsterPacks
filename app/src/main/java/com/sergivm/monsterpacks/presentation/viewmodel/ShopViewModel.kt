@@ -18,8 +18,17 @@ data class ShopUiState(
     val freePackCooldownRemainingMs: Long = 0L,
     val isFreePackReady: Boolean = false,
     val purchaseResult: UpgradeResult? = null,
-    val nextPackRegenRemainingMs: Long = 0L
-)
+    val nextPackRegenRemainingMs: Long = 0L,
+    
+    // Internal Pack Opening State (Point 2)
+    val isOpeningFreePack: Boolean = false,
+    val drawnCards: List<Card> = emptyList(),
+    val currentCardIndex: Int = 0,
+    val showSummary: Boolean = false
+) {
+    val currentCard: Card? get() = drawnCards.getOrNull(currentCardIndex)
+    val isLastCard: Boolean get() = currentCardIndex >= drawnCards.lastIndex
+}
 
 @HiltViewModel
 class ShopViewModel @Inject constructor(
@@ -41,7 +50,6 @@ class ShopViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        // Tick cooldown timer every second
         viewModelScope.launch {
             while (true) {
                 val nowMs = System.currentTimeMillis()
@@ -74,25 +82,61 @@ class ShopViewModel @Inject constructor(
 
     fun clearPurchaseResult() = _uiState.update { it.copy(purchaseResult = null) }
 
-    // ── Free Pack ─────────────────────────────────────────────────────────────
+    // ── Free Pack Logic (Directly in Shop) ───────────────────────────────────
 
     fun claimFreePack() {
-        val state = _uiState.value.playerState
-        if (!state.isFreePackReady(System.currentTimeMillis())) return
+        val state = _uiState.value
+        val player = state.playerState
+        if (!player.isFreePackReady(System.currentTimeMillis())) return
         
-        // Note: The actual card rolling and display is handled by MainViewModel
-        // when it detects a "pending" free pack or when triggered via navigation.
-        // For simplicity in this implementation, we reset the cooldown here.
-        // The user requested that it "gives cards", so we need to ensure 
-        // the flow navigates to the Pack Opening screen with the Free Pack.
+        // Roll cards for the Free Pack
+        val cards = GameEngine.rollPack(PackDataSource.freePack, CardDataSource.genesisCardCollection)
         
+        _uiState.update {
+            it.copy(
+                isOpeningFreePack = true,
+                drawnCards = cards,
+                currentCardIndex = 0,
+                showSummary = false
+            )
+        }
+    }
+
+    fun nextFreeCard() {
+        val state = _uiState.value
+        if (state.isLastCard) {
+            _uiState.update { it.copy(showSummary = true) }
+        } else {
+            _uiState.update { it.copy(currentCardIndex = state.currentCardIndex + 1) }
+        }
+    }
+
+    fun finishFreePack() {
+        val state = _uiState.value
         viewModelScope.launch {
-            val cooldownMs = freeCooldownMs(state.freePackCooldownLevel)
-            val updated = state.copy(
-                freePackReadyAtMs = System.currentTimeMillis() + cooldownMs
+            // Apply results (Gems + Cards)
+            val gemReward = 5L + state.playerState.freePackGemYieldLevel * 2
+            val cooldownMs = freeCooldownMs(state.playerState.freePackCooldownLevel)
+            
+            val updated = GameEngine.applyPackResult(
+                state = state.playerState.copy(
+                    gems = state.playerState.gems + gemReward,
+                    freePackReadyAtMs = System.currentTimeMillis() + cooldownMs
+                ),
+                cards = state.drawnCards,
+                xpReward = PackDataSource.freePack.xpReward,
+                isFreePack = true
             )
             repository.savePlayerState(updated)
-            // Navigation or Event trigger should happen here to open the pack
+            
+            _uiState.update {
+                it.copy(
+                    isOpeningFreePack = false,
+                    drawnCards = emptyList(),
+                    currentCardIndex = 0,
+                    showSummary = false
+                )
+            }
         }
     }
 
@@ -127,12 +171,10 @@ class ShopViewModel @Inject constructor(
         return when {
             upgrade.id.startsWith("free_cooldown") -> baseState.copy(freePackCooldownLevel = state.freePackCooldownLevel + 1)
             upgrade.id.startsWith("free_gems")     -> baseState.copy(freePackGemYieldLevel = state.freePackGemYieldLevel + 1)
-            upgrade.id.startsWith("free_cards")    -> baseState.copy(freePackCardCountLevel = state.freePackCardCountLevel + 1)
             
             upgrade.id.startsWith("basic_rarity")  -> baseState.copy(basicPackRarityLevel = state.basicPackRarityLevel + 1)
             upgrade.id.startsWith("basic_capacity")-> baseState.copy(basicPackCapacityLevel = state.basicPackCapacityLevel + 1, maxPacks = state.maxPacks + 10)
             upgrade.id.startsWith("basic_regen")   -> baseState.copy(basicPackRegenLevel = state.basicPackRegenLevel + 1)
-            upgrade.id.startsWith("basic_count")   -> baseState.copy(basicPackCardCountLevel = state.basicPackCardCountLevel + 1)
             
             else -> baseState
         }
@@ -141,12 +183,11 @@ class ShopViewModel @Inject constructor(
     private fun buildUpgradeList(state: PlayerState): List<Upgrade> {
         val upgrades = mutableListOf<Upgrade>()
         
-        // ── BASIC PACK UPGRADES ───────────────────────────────────────────────
         val bRegen = state.basicPackRegenLevel
         upgrades.add(Upgrade(
             id = "basic_regen_t${bRegen + 1}",
             name = "Pack Regeneration",
-            description = "Reduces the time to generate new basic packs.",
+            description = "Reduces basic pack generation time.",
             currentValue = "${GameEngine.getPackRegenIntervalMs(bRegen) / 60000} min",
             nextValue = "${GameEngine.getPackRegenIntervalMs(bRegen + 1) / 60000} min",
             cost = PackCost.Coins(500L + bRegen * 300L),
@@ -159,7 +200,7 @@ class ShopViewModel @Inject constructor(
         upgrades.add(Upgrade(
             id = "basic_capacity_t${bCapacity + 1}",
             name = "Pack Storage",
-            description = "Increases the maximum number of packs you can hold.",
+            description = "Increases max basic packs.",
             currentValue = "${state.maxPacks} packs",
             nextValue = "${state.maxPacks + 10} packs",
             cost = PackCost.Coins(300L + bCapacity * 200L),
@@ -168,12 +209,11 @@ class ShopViewModel @Inject constructor(
             maxTier = 5
         ))
 
-        // ── FREE PACK UPGRADES ────────────────────────────────────────────────
         val fCooldown = state.freePackCooldownLevel
         upgrades.add(Upgrade(
             id = "free_cooldown_t${fCooldown + 1}",
             name = "Free Pack Cooldown",
-            description = "Reduces the time between free packs.",
+            description = "Reduces time between free packs.",
             currentValue = formatCooldown(freeCooldownMs(fCooldown)),
             nextValue = formatCooldown(freeCooldownMs(fCooldown + 1)),
             cost = PackCost.Both(coins = 200L, gems = 10L),
@@ -185,7 +225,6 @@ class ShopViewModel @Inject constructor(
         return upgrades
     }
 
-    // Point 2: Set to 10 minutes instead of 4h
     private fun freeCooldownMs(tier: Int): Long = maxOf(TimeUnit.MINUTES.toMillis(1), TimeUnit.MINUTES.toMillis(10) - tier * TimeUnit.MINUTES.toMillis(1))
 
     private fun formatCooldown(ms: Long): String {

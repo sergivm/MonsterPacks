@@ -1,9 +1,13 @@
 package com.sergivm.monsterpacks.presentation.screen.shop
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,81 +19,89 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
 import com.sergivm.monsterpacks.domain.model.UpgradeResult
-import com.sergivm.monsterpacks.domain.model.PackDataSource
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
+import com.sergivm.monsterpacks.presentation.screen.main.CardView
 import com.sergivm.monsterpacks.presentation.ui.theme.*
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
-import com.sergivm.monsterpacks.presentation.viewmodel.MainViewModel
 
 @Composable
 fun ShopScreen(
     shopViewModel: ShopViewModel = hiltViewModel(),
-    mainViewModel: MainViewModel = hiltViewModel(), // Shared logic to trigger pack opening
     onNavigateToPacks: () -> Unit = {}
 ) {
     val state by shopViewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-    ) {
-        MonsterPacksTopBar(playerState = state.playerState)
+    Box(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            MonsterPacksTopBar(playerState = state.playerState)
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SurfaceDark)
-                .padding(vertical = 14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "SHOP",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 4.sp
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(SurfaceDark)
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "SHOP",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 4.sp
+                )
+            }
+
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    FreePackRow(
+                        isReady = state.isFreePackReady,
+                        cooldownRemainingMs = state.freePackCooldownRemainingMs,
+                        onClaim = { shopViewModel.claimFreePack() }
+                    )
+                }
+
+                item {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        "UPGRADES",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+
+                items(state.upgrades, key = { it.id }) { upgrade ->
+                    UpgradeRow(
+                        upgrade = upgrade,
+                        playerLevel = state.playerState.level,
+                        playerCoins = state.playerState.coins,
+                        playerGems = state.playerState.gems,
+                        onPurchase = { shopViewModel.purchaseUpgrade(upgrade) }
+                    )
+                }
+            }
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Overlay for Free Pack Opening (Point 2)
+        AnimatedVisibility(
+            visible = state.isOpeningFreePack,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
         ) {
-            item {
-                FreePackRow(
-                    isReady = state.isFreePackReady,
-                    cooldownRemainingMs = state.freePackCooldownRemainingMs,
-                    onClaim = { 
-                        shopViewModel.claimFreePack()
-                        mainViewModel.openPack(PackDataSource.freePack)
-                        onNavigateToPacks()
-                    }
-                )
-            }
-
-            item {
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
-                Text(
-                    "UPGRADES",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    letterSpacing = 2.sp,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
-
-            items(state.upgrades, key = { it.id }) { upgrade ->
-                UpgradeRow(
-                    upgrade = upgrade,
-                    playerLevel = state.playerState.level,
-                    playerCoins = state.playerState.coins,
-                    playerGems = state.playerState.gems,
-                    onPurchase = { shopViewModel.purchaseUpgrade(upgrade) }
-                )
-            }
+            FreePackRevealView(
+                cards = state.drawnCards,
+                currentIndex = state.currentCardIndex,
+                showSummary = state.showSummary,
+                onNext = { shopViewModel.nextFreeCard() },
+                onFinish = { shopViewModel.finishFreePack() }
+            )
         }
     }
 
@@ -99,6 +111,93 @@ fun ShopScreen(
         }
     }
 }
+
+// ── Free Pack Opening View ───────────────────────────────────────────────────
+
+@Composable
+private fun FreePackRevealView(
+    cards: List<Card>,
+    currentIndex: Int,
+    showSummary: Boolean,
+    onNext: () -> Unit,
+    onFinish: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.95f))
+            .clickable(enabled = !showSummary) { onNext() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (!showSummary) {
+            val currentCard = cards.getOrNull(currentIndex)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "FREE PACK REVEAL",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 2.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "${currentIndex + 1} / ${cards.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+                Spacer(Modifier.height(24.dp))
+                
+                if (currentCard != null) {
+                    CardView(
+                        card = currentCard,
+                        isNewCard = false,
+                        copyCount = 0,
+                        modifier = Modifier.fillMaxWidth(0.8f).aspectRatio(0.65f)
+                    )
+                }
+                
+                Spacer(Modifier.height(40.dp))
+                Text("Tap to reveal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Pack Summary", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(24.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    cards.forEach { card ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(0.65f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(card.type.color.copy(alpha = 0.2f))
+                                .border(1.dp, card.type.color, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(card.rarity.icon, fontSize = 20.sp)
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.height(48.dp))
+                
+                Button(
+                    onClick = onFinish,
+                    modifier = Modifier.fillMaxWidth(0.7f).height(52.dp),
+                    shape = RoundedCornerShape(26.dp)
+                ) {
+                    Text("CLAIM REWARDS", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+// ── Components ────────────────────────────────────────────────────────────────
 
 @Composable
 private fun FreePackRow(
@@ -122,11 +221,10 @@ private fun FreePackRow(
             } else {
                 val totalSeconds = cooldownRemainingMs / 1000
                 val totalMinutes = totalSeconds / 60
-                val hours = totalMinutes / 60
                 val minutes = totalMinutes % 60
                 val seconds = totalSeconds % 60
                 
-                val timeText = if (hours > 0) "${hours}h ${minutes}m" else "${minutes}:${seconds.toString().padStart(2, '0')}"
+                val timeText = "${minutes}:${seconds.toString().padStart(2, '0')}"
                 Text(
                     "Ready in $timeText",
                     style = MaterialTheme.typography.bodyMedium,

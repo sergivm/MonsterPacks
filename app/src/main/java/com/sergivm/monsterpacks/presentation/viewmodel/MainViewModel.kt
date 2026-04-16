@@ -11,21 +11,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class MainUiState(
-    val playerState: PlayerState? = null, // Null means still loading from DB
+    val playerState: PlayerState? = null,
     val activeCollection: CardCollection = CardDataSource.genesisCardCollection,
     val packDefinition: PackDefinition = PackDataSource.basicPack,
-    // Pack opening session state
     val isOpeningPack: Boolean = false,
     val drawnCards: List<Card> = emptyList(),
     val currentCardIndex: Int = 0,
-    val surprisePackId: String? = null,   // non-null when Surprise Event triggered
+    val surprisePackId: String? = null,
     val showSummary: Boolean = false,
     val sessionSaved: Boolean = false
 ) {
     val currentCard: Card? get() = drawnCards.getOrNull(currentCardIndex)
     val isLastCard: Boolean get() = currentCardIndex >= drawnCards.lastIndex
-    
-    // Logic: Only show setup if we finished loading AND username is blank
     val isFirstLaunch: Boolean get() = playerState != null && playerState.username.isBlank()
     val isLoading: Boolean get() = playerState == null
 }
@@ -42,7 +39,6 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             repository.observePlayerState().collect { playerState ->
                 val now = System.currentTimeMillis()
-                // Auto-refresh packs when state is observed
                 val refreshedState = GameEngine.refreshPackCount(playerState, now)
                 if (refreshedState != playerState) {
                     repository.savePlayerState(refreshedState)
@@ -52,26 +48,20 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** 
-     * Opens a specific pack. 
-     * @param customPack If non-null, opens this instead of the default basic pack (used for Free Pack).
-     */
-    fun openPack(customPack: PackDefinition? = null) {
+    fun openPack() {
         val state = _uiState.value
         val player = state.playerState ?: return
-        val pack = customPack ?: state.packDefinition
         val collection = state.activeCollection
 
-        if (customPack == null && player.availablePacks <= 0) return
+        if (player.availablePacks <= 0) return
 
-        // Check surprise event (only applies to default BASIC packs)
-        val surpriseId: String? = if (customPack == null && pack.type == PackType.BASIC) {
+        val surpriseId: String? = if (state.packDefinition.type == PackType.BASIC) {
             GameEngine.checkSurpriseEvent()
         } else null
 
         val effectivePack = if (surpriseId != null) {
-            resolveSurprisePack(surpriseId, pack) ?: pack
-        } else pack
+            resolveSurprisePack(surpriseId, state.packDefinition) ?: state.packDefinition
+        } else state.packDefinition
 
         val cards = GameEngine.rollPack(effectivePack, collection)
 
@@ -106,7 +96,7 @@ class MainViewModel @Inject constructor(
                 state = player,
                 cards = state.drawnCards,
                 xpReward = state.packDefinition.xpReward,
-                isFreePack = state.surprisePackId == null && state.drawnCards.size == 3 // Simple check for free pack
+                isFreePack = false // Basic packs always consume
             )
             repository.savePlayerState(updated)
             _uiState.update {
