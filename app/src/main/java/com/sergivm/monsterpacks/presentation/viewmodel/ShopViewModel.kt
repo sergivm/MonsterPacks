@@ -250,6 +250,17 @@ class ShopViewModel @Inject constructor(
             requiredLevel = 4, tier = fGems + 1, maxTier = 5
         ))
 
+        val fCount = state.freePackCardCountLevel
+        upgrades.add(Upgrade(
+            id = "free_count_t${fCount + 1}",
+            name = "Bonus Pack Cards Count",
+            description = "Increases cards per bonus pack.",
+            currentValue = "${3 + fCount} cards",
+            nextValue = "${3 + fCount + 1} cards",
+            cost = PackCost.Gems(30L + fCount * 30L),
+            requiredLevel = 5, tier = fCount + 1, maxTier = 5
+        ))
+
         return upgrades
     }
 

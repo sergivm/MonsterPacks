@@ -61,39 +61,49 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun openPack() {
+    fun openPack(count: Int = 1) {
         val state = _uiState.value
         val player = state.playerState ?: return
-        if (player.availablePacks <= 0) return
+        if (player.availablePacks < count) return
 
         val now = System.currentTimeMillis()
-        val consumedPlayer = GameEngine.consumePack(player, now)
+        val consumedPlayer = GameEngine.consumePack(player, now, count)
         
-        val surpriseId: String? = if (state.packDefinition.type == PackType.BASIC) {
-            GameEngine.checkSurpriseEvent()
-        } else null
+        // Rolling cards for 'count' packs
+        val allCards = mutableListOf<Card>()
+        var totalXpReward = 0
+        
+        repeat(count) {
+            val surpriseId: String? = if (state.packDefinition.type == PackType.BASIC) {
+                GameEngine.checkSurpriseEvent()
+            } else null
 
-        val effectivePack = if (surpriseId != null) {
-            resolveSurprisePack(surpriseId, state.packDefinition) ?: state.packDefinition
-        } else state.packDefinition
+            val effectivePack = if (surpriseId != null) {
+                resolveSurprisePack(surpriseId, state.packDefinition) ?: state.packDefinition
+            } else state.packDefinition
 
-        val cards = GameEngine.rollPack(
-            pack = effectivePack,
-            collection = state.activeCollection,
-            playerState = player
-        )
+            val cards = GameEngine.rollPack(
+                pack = effectivePack,
+                collection = state.activeCollection,
+                playerState = player
+            )
+            allCards.addAll(cards)
+            totalXpReward += effectivePack.xpReward
+        }
 
         viewModelScope.launch {
             repository.savePlayerState(consumedPlayer)
         }
 
+        // We use a custom pack definition for the summary if we open multiple
+        // but for the opening sequence we just show the cards one by one
         _uiState.update {
             it.copy(
                 playerState = consumedPlayer,
                 isOpeningPack = true,
-                drawnCards = cards,
+                drawnCards = allCards,
                 currentCardIndex = 0,
-                surprisePackId = surpriseId,
+                surprisePackId = if (count == 1) it.surprisePackId else null, // Hide specific surprise info if bulk
                 showSummary = false,
                 sessionSaved = false
             )
@@ -113,7 +123,16 @@ class MainViewModel @Inject constructor(
         if (state.sessionSaved) return
 
         viewModelScope.launch {
-            val updated = GameEngine.applyPackResult(player, state.drawnCards, state.packDefinition.xpReward)
+            // XP reward needs to handle bulk
+            val baseReward = state.packDefinition.xpReward
+            val totalXp = if (state.drawnCards.size > state.packDefinition.cardCount) {
+                // Approximate total XP for bulk open
+                val packSize = state.packDefinition.cardCount + player.basicPackCardCountLevel
+                val packsOpened = state.drawnCards.size / packSize
+                baseReward * packsOpened
+            } else baseReward
+
+            val updated = GameEngine.applyPackResult(player, state.drawnCards, totalXp)
             repository.savePlayerState(updated)
             _uiState.update {
                 it.copy(

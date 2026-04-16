@@ -8,9 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -31,14 +28,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.engine.GameEngine
-import com.sergivm.monsterpacks.domain.model.*
+import com.sergivm.monsterpacks.domain.model.Card
+import com.sergivm.monsterpacks.domain.model.PlayerState
+import com.sergivm.monsterpacks.domain.model.Rarity
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.screen.UsernameSetupScreen
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
@@ -113,7 +110,8 @@ fun MainScreen(
                 else -> {
                     PackIdleScreen(
                         playerState = playerState,
-                        packDefinition = state.packDefinition,
+                        packName = state.packDefinition.name,
+                        coverResName = state.packDefinition.coverRes,
                         onOpenPack = {
                             viewModel.openPack(1)
                             onPackOpeningStarted()
@@ -134,13 +132,14 @@ fun MainScreen(
 @Composable
 private fun PackIdleScreen(
     playerState: PlayerState,
-    packDefinition: PackDefinition,
+    packName: String,
+    coverResName: String,
     onOpenPack: () -> Unit,
     onOpenBulk: () -> Unit
 ) {
     val context = LocalContext.current
-    val coverResId = remember(packDefinition.coverRes) {
-        context.resources.getIdentifier(packDefinition.coverRes, "drawable", context.packageName)
+    val coverResId = remember(coverResName) {
+        context.resources.getIdentifier(coverResName, "drawable", context.packageName)
     }
 
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -168,7 +167,7 @@ private fun PackIdleScreen(
             remainingMs = remainingRegenMs
         )
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(16.dp))
 
         val infiniteTransition = rememberInfiniteTransition(label = "PackFloat")
         val offsetY by infiniteTransition.animateFloat(
@@ -183,7 +182,7 @@ private fun PackIdleScreen(
 
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.55f)
+                .fillMaxWidth(0.6f)
                 .aspectRatio(0.65f)
                 .graphicsLayer { translationY = offsetY }
                 .clip(RoundedCornerShape(16.dp))
@@ -200,28 +199,25 @@ private fun PackIdleScreen(
                 )
             }
 
-            // Only show pack name overlay for non-basic packs (Point 1)
-            if (packDefinition.type != PackType.BASIC) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = packDefinition.name.uppercase(),
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            textAlign = TextAlign.Center,
-                            color = Color.White
-                        )
-                    }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)))),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = packName.uppercase(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center,
+                        color = Color.White
+                    )
                 }
             }
         }
 
-        Spacer(Modifier.weight(0.15f))
+        Spacer(Modifier.weight(0.1f))
 
         val canOpen = playerState.availablePacks > 0
         val canBulk = playerState.availablePacks >= 5 && playerState.isBulkOpenUnlocked
@@ -229,7 +225,7 @@ private fun PackIdleScreen(
         Column(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Button(
                 onClick = onOpenPack,
@@ -251,14 +247,14 @@ private fun PackIdleScreen(
                         .fillMaxWidth(0.6f)
                         .height(48.dp),
                     shape = RoundedCornerShape(24.dp),
-                    border = borderStroke(2.dp, if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f))
+                    border = androidx.compose.foundation.BorderStroke(2.dp, if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f))
                 ) {
                     Text(stringResource(R.string.bulk_open_x5), fontWeight = FontWeight.Bold, color = if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray)
                 }
             }
         }
 
-        Spacer(Modifier.weight(0.1f))
+        Spacer(Modifier.weight(0.05f))
     }
 }
 
@@ -396,14 +392,10 @@ fun CardRevealScreen(
                 },
                 label = "CardSlide"
             ) { currentCard ->
-                // Add padding to the container to prevent the offset "New!" tag from being clipped during transitions
-                Box(
-                    modifier = Modifier.padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                Box(contentAlignment = Alignment.Center) {
                     CardView(
                         card = currentCard,
-                        isNewCard = false, // Handled outside to prevent internal clipping
+                        isNewCard = false, // Handled outside to prevent clipping
                         copyCount = copyCount,
                         modifier = Modifier
                             .fillMaxWidth(0.75f)
@@ -411,11 +403,30 @@ fun CardRevealScreen(
                     )
 
                     if (isNewCard) {
-                        NewTag(
+                        val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
+                        val scale by pulseTransition.animateFloat(
+                            initialValue = 1f,
+                            targetValue = 1.15f,
+                            animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                            label = "Scale"
+                        )
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(4.dp),
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .offset(x = 12.dp, y = (-12).dp)
-                        )
+                                .scale(scale)
+                        ) {
+                            Text(
+                                stringResource(R.string.new_card),
+                                color = Color.Black,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -431,37 +442,6 @@ fun CardRevealScreen(
 
             Spacer(Modifier.height(32.dp))
         }
-    }
-}
-
-@Composable
-fun NewTag(
-    modifier: Modifier = Modifier,
-    scale: Float = 1f,
-    fontSize: TextUnit = 12.sp,
-    horizontalPadding: Dp = 8.dp,
-    verticalPadding: Dp = 4.dp
-) {
-    val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
-    val pulseScale by pulseTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "Scale"
-    )
-
-    Surface(
-        color = MaterialTheme.colorScheme.primary,
-        shape = RoundedCornerShape(4.dp),
-        modifier = modifier.scale(pulseScale * scale)
-    ) {
-        Text(
-            stringResource(R.string.new_card),
-            color = Color.Black,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = fontSize,
-            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding)
-        )
     }
 }
 
@@ -593,11 +573,30 @@ fun CardView(
         }
 
         if (isNewCard) {
-            NewTag(
+            val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
+            val scale by pulseTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.15f,
+                animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "Scale"
+            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(4.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .offset(x = 8.dp, y = (-8).dp)
-            )
+                    .scale(scale)
+            ) {
+                Text(
+                    stringResource(R.string.new_card),
+                    color = Color.Black,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         } else if (copyCount > 1) {
             Surface(
                 color = Color.Black.copy(alpha = 0.6f),
@@ -631,7 +630,7 @@ private fun SummaryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
-            .padding(top = 16.dp, start = 16.dp, end = 16.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -641,7 +640,7 @@ private fun SummaryScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
         Row(
             modifier = Modifier
@@ -664,32 +663,44 @@ private fun SummaryScreen(
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // Grid for cards (Optimized for bulk open)
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4), // 4 cards per row (Point 1)
-            contentPadding = PaddingValues(bottom = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f).fillMaxWidth()
-        ) {
-            itemsIndexed(cards, key = { index, card -> "${card.id}_$index" }) { _, card ->
-                SummaryCardCell(card, !playerState.hasCard(card.id))
+        // Show cards in a grid if there are many (Bulk Open support)
+        Box(modifier = Modifier.weight(1f)) {
+            if (cards.size <= 5) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    cards.forEachIndexed { index, card ->
+                        var visible by remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) {
+                            delay(100L * index)
+                            visible = true
+                        }
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = scaleIn(animationSpec = tween(400)) + fadeIn(),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            SummaryCardCell(card, !playerState.hasCard(card.id))
+                        }
+                    }
+                }
+            } else {
+                // TODO: Implement flow row or grid for bulk open results (25+ cards)
             }
         }
 
-        Spacer(Modifier.height(16.dp))
-
         Button(
             onClick = onSave,
-            modifier = Modifier.fillMaxWidth(0.8f).height(52.dp),
-            shape = RoundedCornerShape(26.dp)
+            modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
+            shape = RoundedCornerShape(28.dp)
         ) {
             Text(stringResource(R.string.done), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(32.dp))
     }
 }
 
@@ -717,9 +728,9 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
         Box(
             modifier = Modifier
                 .aspectRatio(0.65f)
-                .clip(RoundedCornerShape(6.dp)) // Slightly smaller radius for grid items
+                .clip(RoundedCornerShape(8.dp))
                 .background(card.type.color.copy(alpha = 0.8f))
-                .border(1.dp, card.rarity.color.copy(alpha = 0.4f), RoundedCornerShape(6.dp)),
+                .border(1.dp, card.rarity.color.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
             if (imageResId != 0) {
@@ -737,17 +748,18 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)))),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                Text(card.rarity.icon, fontSize = 14.sp, modifier = Modifier.padding(2.dp))
+                Text(card.rarity.icon, fontSize = 16.sp, modifier = Modifier.padding(4.dp))
             }
         }
         
         if (isNew) {
-            Spacer(Modifier.height(2.dp))
-            NewTag(
-                scale = 0.6f, // Even smaller for 4-column grid
-                fontSize = 7.sp,
-                horizontalPadding = 3.dp,
-                verticalPadding = 1.dp
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.new_card).replace("!", ""),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 10.sp
             )
         }
     }

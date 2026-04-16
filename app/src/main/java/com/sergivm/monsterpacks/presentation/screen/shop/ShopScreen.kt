@@ -26,9 +26,7 @@ import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
 import com.sergivm.monsterpacks.domain.model.UpgradeResult
-import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
-import com.sergivm.monsterpacks.presentation.screen.main.CardView
-import com.sergivm.monsterpacks.presentation.screen.main.SummaryCardCell
+import com.sergivm.monsterpacks.presentation.screen.*
 import com.sergivm.monsterpacks.presentation.ui.theme.*
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
 
@@ -132,37 +130,37 @@ private fun FreePackRevealView(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.95f))
-            .clickable(enabled = !showSummary) { onNext() },
-        contentAlignment = Alignment.Center
     ) {
         if (!showSummary) {
             val currentCard = cards.getOrNull(currentIndex)
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    stringResource(R.string.shop_free_pack_reveal),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 2.sp
+            if (currentCard != null) {
+                CardRevealAnimationContainer(
+                    card = currentCard,
+                    isNewCard = !playerState.hasCard(currentCard.id),
+                    copyCount = playerState.copiesOf(currentCard.id),
+                    header = {
+                        Text(
+                            stringResource(R.string.shop_free_pack_reveal),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 2.sp
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "${currentIndex + 1} / ${cards.size}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    },
+                    footer = {
+                        Text(
+                            stringResource(R.string.shop_tap_to_reveal),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    },
+                    onTap = onNext
                 )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "${currentIndex + 1} / ${cards.size}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
-                Spacer(Modifier.height(24.dp))
-                
-                if (currentCard != null) {
-                    CardView(
-                        card = currentCard,
-                        isNewCard = !playerState.hasCard(currentCard.id),
-                        copyCount = playerState.copiesOf(currentCard.id),
-                        modifier = Modifier.fillMaxWidth(0.8f).aspectRatio(0.65f)
-                    )
-                }
-                
-                Spacer(Modifier.height(40.dp))
-                Text(stringResource(R.string.shop_tap_to_reveal), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         } else {
             val totalCoins = cards.sumOf { it.coinReward }

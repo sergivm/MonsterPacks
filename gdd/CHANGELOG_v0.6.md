@@ -53,9 +53,9 @@ This document recaps all features, fixes, and architectural changes implemented 
     - **Database**: Updated Room schema to Version 2 with destructive migration enabled.
 
 ## 📝 TODOs for v0.7
-- [ ] Implement unique particle shapes/behaviors based on `CardType` (e.g., flames for Infernal, stars for Celestial).
-- [ ] Add Dreamy/Oniric animated backgrounds for the pack opening screen.
-- [ ] Implement Bulk Opening logic (rolling 25 cards at once).
-- [ ] Localization support (Spanish/English toggle).
-- [ ] Send notifications when the pack counter is full.
-- [ ] Enable a "dev settings" behaviour to allow better testing. This "dev settings" will set the same drop rates for every rarity (to test particle and effects) and will multiply the resources outcome x100, so i can buy the Shop Upgrades faster.
+- [  ] Implement unique particle shapes/behaviors based on `CardType` (e.g., flames for Infernal, stars for Celestial).
+- [  ] Add Dreamy/Oniric animated backgrounds for the pack opening screen.
+- [  ] Implement Bulk Opening logic (rolling 25 cards at once).
+- [  ] Localization support (Spanish/English toggle).
+- [  ] Send notifications when the pack counter is full.
+- [X] Enable a "dev settings" behaviour to allow better testing. This "dev settings" will set the same drop rates for every rarity (to test particle and effects) and will multiply the resources outcome x100, so i can buy the Shop Upgrades faster.
