@@ -1,9 +1,12 @@
 package com.sergivm.monsterpacks.presentation.screen.collection
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,34 +14,40 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.domain.model.Card
+import com.sergivm.monsterpacks.domain.model.CardType
 import com.sergivm.monsterpacks.domain.model.Rarity
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
+import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
 import com.sergivm.monsterpacks.presentation.viewmodel.CollectionViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
+    val sheetState = rememberModalBottomSheetState()
+    var showFilters by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
         Column {
             MonsterPacksTopBar(playerState = state.playerState)
 
-            // Collection header with rarity progress
             CollectionHeader(
                 collectionName = state.collection.name,
                 progressByRarity = state.progressByRarity,
-                onFilterClick = { /* TODO: show filter bottom sheet */ }
+                onFilterClick = { showFilters = true }
             )
 
-            // Card grid
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 contentPadding = PaddingValues(8.dp),
@@ -51,20 +60,133 @@ fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
                     CollectionCardCell(
                         card = card,
                         owned = owned,
-                        copyCount = state.playerState.copiesOf(card.id),
                         onClick = { viewModel.selectCard(card) }
                     )
                 }
             }
         }
 
-        // Card detail dialog
+        if (showFilters) {
+            ModalBottomSheet(
+                onDismissRequest = { showFilters = false },
+                sheetState = sheetState,
+                containerColor = SurfaceDark
+            ) {
+                FilterSheetContent(
+                    activeRarities = state.activeRarityFilter,
+                    activeTypes = state.activeTypeFilter,
+                    onToggleRarity = { viewModel.toggleRarityFilter(it) },
+                    onToggleType = { viewModel.toggleTypeFilter(it) },
+                    onClear = { viewModel.clearFilters() }
+                )
+            }
+        }
+
         state.selectedCard?.let { card ->
             CardDetailDialog(
                 card = card,
                 owned = state.playerState.hasCard(card.id),
                 copyCount = state.playerState.copiesOf(card.id),
                 onDismiss = { viewModel.dismissCard() }
+            )
+        }
+    }
+}
+
+// ── Filter Sheet Content ──────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun FilterSheetContent(
+    activeRarities: Set<Rarity>,
+    activeTypes: Set<CardType>,
+    onToggleRarity: (Rarity) -> Unit,
+    onToggleType: (CardType) -> Unit,
+    onClear: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Filters", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onClear) { Text("Clear All") }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Text("RARITY", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Rarity.values().forEach { rarity ->
+                FilterChip(
+                    text = rarity.displayName,
+                    icon = rarity.icon,
+                    selected = rarity in activeRarities,
+                    color = rarity.color,
+                    onClick = { onToggleRarity(rarity) }
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Text("TYPE", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Spacer(Modifier.height(8.dp))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            CardType.values().forEach { type ->
+                FilterChip(
+                    text = type.displayName,
+                    icon = null,
+                    selected = type in activeTypes,
+                    color = type.color,
+                    onClick = { onToggleType(type) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterChip(
+    text: String,
+    icon: String?,
+    selected: Boolean,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        color = if (selected) color.copy(alpha = 0.2f) else SurfaceVariantDark,
+        border = if (selected) androidx.compose.foundation.BorderStroke(2.dp, color) else null,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (icon != null) {
+                Text(icon, fontSize = 14.sp)
+                Spacer(Modifier.width(6.dp))
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) color else Color.White,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
             )
         }
     }
@@ -101,7 +223,6 @@ private fun CollectionHeader(
 
         Spacer(Modifier.height(6.dp))
 
-        // Rarity progress counters
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -128,42 +249,56 @@ private fun CollectionHeader(
 private fun CollectionCardCell(
     card: Card,
     owned: Boolean,
-    copyCount: Int,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val imageResId = remember(card.imageRes) {
+        context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
+    }
+
     Box(
         modifier = Modifier
             .aspectRatio(0.7f)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (owned) card.type.color.copy(alpha = 0.75f) else Color(0xFF1A1A1A))
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (owned) Color.Black else Color(0xFF1A1A1A))
+            .then(
+                if (owned) Modifier.border(2.dp, card.type.color, RoundedCornerShape(8.dp))
+                else Modifier
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
         if (owned) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(4.dp)
-            ) {
-                // TODO: replace with card thumbnail image
-                Text(card.rarity.icon, fontSize = 12.sp)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = card.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    fontSize = 9.sp
+            if (imageResId != 0) {
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp) // Gap for the colored frame
+                        .clip(RoundedCornerShape(6.dp)),
+                    contentScale = ContentScale.Crop
                 )
-                if (copyCount > 1) {
-                    Text("×$copyCount", style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f), fontSize = 8.sp)
-                }
+            }
+            
+            // Rarity icon at bottom right
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(6.dp),
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                Text(
+                    text = card.rarity.icon,
+                    fontSize = 10.sp,
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                        .padding(2.dp)
+                )
             }
         } else {
-            // Locked silhouette
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("■", color = Color.DarkGray, fontSize = 24.sp)  // TODO: rarity-shaped silhouette
+                Text("■", color = Color.DarkGray, fontSize = 24.sp)
                 Text(
                     text = "#${card.collectionNumber.toString().padStart(3,'0')}",
                     style = MaterialTheme.typography.labelSmall,
@@ -184,6 +319,11 @@ private fun CardDetailDialog(
     copyCount: Int,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val imageResId = remember(card.imageRes) {
+        context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SurfaceDark,
@@ -195,6 +335,32 @@ private fun CardDetailDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black)
+                        .border(3.dp, card.type.color, RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imageResId != 0 && owned) {
+                        Image(
+                            painter = painterResource(id = imageResId),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(10.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Text(
+                            text = if (owned) "[ Missing Art ]" else "[ Locked ]",
+                            color = Color.White.copy(alpha = 0.2f),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(8.dp))
                 Text("Type: ${card.type.displayName}", style = MaterialTheme.typography.bodyMedium, color = card.type.color)
                 Text("Rarity: ${card.rarity.displayName}", style = MaterialTheme.typography.bodyMedium, color = card.rarity.color)
                 Text("#${card.collectionNumber.toString().padStart(3,'0')}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)

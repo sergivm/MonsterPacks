@@ -26,7 +26,9 @@ object DatabaseModule {
             context,
             MonsterPacksDatabase::class.java,
             "monster_packs.db"
-        ).build()
+        )
+        .fallbackToDestructiveMigration()
+        .build()
 
     @Provides
     fun providePlayerStateDao(db: MonsterPacksDatabase): PlayerStateDao =

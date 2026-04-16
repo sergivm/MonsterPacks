@@ -5,9 +5,6 @@ import androidx.room.PrimaryKey
 
 /**
  * Room entity that persists the player's full state.
- * cardCopiesJson stores the cardCopies map serialised as JSON via Gson.
- *
- * There is always exactly one row (id = 1).
  */
 @Entity(tableName = "player_state")
 data class PlayerStateEntity(
@@ -18,8 +15,25 @@ data class PlayerStateEntity(
     val gems: Long = 0L,
     val xp: Long = 0L,
     val level: Int = 1,
-    val cardCopiesJson: String = "{}",   // Gson: Map<Int, Int>
-    val bonusPackReadyAtMs: Long? = null,
-    val basicPackUpgradeLevel: Int = 0,
-    val bonusPackUpgradeLevel: Int = 0
+    val cardCopiesJson: String = "{}",
+    
+    // Pack Limit System
+    val availablePacks: Int = 50,
+    val maxPacks: Int = 50,
+    val lastPackRegenTimeMs: Long = 0L,
+    
+    // Free Pack System
+    val freePackReadyAtMs: Long? = null,
+    
+    // Upgrade Levels
+    val basicPackRarityLevel: Int = 0,
+    val basicPackCapacityLevel: Int = 0,
+    val basicPackCardCountLevel: Int = 0,
+    val basicPackRegenLevel: Int = 0,
+    val basicPackXpLevel: Int = 0,
+    
+    val freePackCooldownLevel: Int = 0,
+    val freePackGemYieldLevel: Int = 0,
+    val freePackCardCountLevel: Int = 0,
+    val freePackStoredLevel: Int = 0
 )

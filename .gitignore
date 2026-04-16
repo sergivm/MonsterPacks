@@ -3,6 +3,7 @@
 /local.properties
 /.idea
 /build
-/captures
+**/build/
+captures/
 .externalNativeBuild
 *.hprof
