@@ -3,11 +3,14 @@ package com.sergivm.monsterpacks.presentation
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
@@ -16,6 +19,7 @@ import com.sergivm.monsterpacks.presentation.screen.main.MainScreen
 import com.sergivm.monsterpacks.presentation.screen.settings.SettingsScreen
 import com.sergivm.monsterpacks.presentation.screen.shop.ShopScreen
 import com.sergivm.monsterpacks.presentation.ui.theme.MonsterPacksTheme
+import com.sergivm.monsterpacks.presentation.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -29,8 +33,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// ── Navigation destinations ───────────────────────────────────────────────────
 
 sealed class Screen(val route: String, val label: String, val icon: String) {
     object Pack       : Screen("pack",       "Pack",       "🎴")
@@ -46,18 +48,21 @@ private val bottomNavItems = listOf(
     Screen.Settings
 )
 
-// ── Nav host ──────────────────────────────────────────────────────────────────
-
 @Composable
-fun MonsterPacksNavHost() {
+fun MonsterPacksNavHost(
+    mainViewModel: MainViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
+    val mainState by mainViewModel.uiState.collectAsState()
 
-    // Hide bottom bar while a pack is being opened
     var isOpeningPack by remember { mutableStateOf(false) }
+
+    // Hide bottom bar if username is missing or a pack is opening
+    val showBottomBar = !mainState.isFirstLaunch && !mainState.isLoading && !isOpeningPack
 
     Scaffold(
         bottomBar = {
-            if (!isOpeningPack) {
+            if (showBottomBar) {
                 NavigationBar {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination
@@ -83,10 +88,11 @@ fun MonsterPacksNavHost() {
         NavHost(
             navController = navController,
             startDestination = Screen.Pack.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier.padding(if (showBottomBar) innerPadding else PaddingValues(0.dp))
         ) {
             composable(Screen.Pack.route) {
                 MainScreen(
+                    viewModel = mainViewModel,
                     onPackOpeningStarted  = { isOpeningPack = true },
                     onPackOpeningFinished = { isOpeningPack = false }
                 )

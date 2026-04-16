@@ -41,7 +41,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Choose your trainer name",
+            text = "Choose your collector name",
             style = MaterialTheme.typography.titleMedium,
             color = Color.Gray,
             textAlign = TextAlign.Center
@@ -52,7 +52,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
         OutlinedTextField(
             value = text,
             onValueChange = { if (it.length <= 20) text = it },
-            label = { Text("Username") },
+            label = { Text("Collector Name") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(

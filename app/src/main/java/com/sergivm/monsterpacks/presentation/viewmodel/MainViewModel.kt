@@ -19,11 +19,14 @@ data class MainUiState(
     val currentCardIndex: Int = 0,
     val surprisePackId: String? = null,
     val showSummary: Boolean = false,
-    val sessionSaved: Boolean = false
+    val sessionSaved: Boolean = false,
+    val setupComplete: Boolean = false // Prevent flickering during setup
 ) {
     val currentCard: Card? get() = drawnCards.getOrNull(currentCardIndex)
     val isLastCard: Boolean get() = currentCardIndex >= drawnCards.lastIndex
-    val isFirstLaunch: Boolean get() = playerState != null && playerState.username.isBlank()
+    
+    // Logic: Only show setup if loading finished, username empty, and setup not just completed
+    val isFirstLaunch: Boolean get() = playerState != null && playerState.username.isBlank() && !setupComplete
     val isLoading: Boolean get() = playerState == null
 }
 
@@ -36,25 +39,30 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            repository.observePlayerState().collect { playerState ->
+        repository.observePlayerState()
+            .onEach { playerState ->
                 val now = System.currentTimeMillis()
-                val refreshedState = GameEngine.refreshPackCount(playerState, now)
-                if (refreshedState != playerState) {
-                    repository.savePlayerState(refreshedState)
+                val refreshed = GameEngine.refreshPackCount(playerState, now)
+                
+                // Only save if the engine actually added a pack (breaks the loop!)
+                if (refreshed !== playerState) {
+                    repository.savePlayerState(refreshed)
                 }
-                _uiState.update { it.copy(playerState = refreshedState) }
+                
+                _uiState.update { it.copy(playerState = refreshed) }
             }
-        }
+            .launchIn(viewModelScope)
     }
 
     fun openPack() {
         val state = _uiState.value
         val player = state.playerState ?: return
-        val collection = state.activeCollection
-
         if (player.availablePacks <= 0) return
 
+        val now = System.currentTimeMillis()
+        val consumedPlayer = GameEngine.consumePack(player, now)
+        
+        // Check surprise event
         val surpriseId: String? = if (state.packDefinition.type == PackType.BASIC) {
             GameEngine.checkSurpriseEvent()
         } else null
@@ -63,10 +71,16 @@ class MainViewModel @Inject constructor(
             resolveSurprisePack(surpriseId, state.packDefinition) ?: state.packDefinition
         } else state.packDefinition
 
-        val cards = GameEngine.rollPack(effectivePack, collection)
+        val cards = GameEngine.rollPack(effectivePack, state.activeCollection)
+
+        // Persistence: Save the pack consumption immediately
+        viewModelScope.launch {
+            repository.savePlayerState(consumedPlayer)
+        }
 
         _uiState.update {
             it.copy(
+                playerState = consumedPlayer,
                 isOpeningPack = true,
                 drawnCards = cards,
                 currentCardIndex = 0,
@@ -78,11 +92,9 @@ class MainViewModel @Inject constructor(
     }
 
     fun revealNextCard() {
-        val state = _uiState.value
-        if (state.isLastCard) {
-            _uiState.update { it.copy(showSummary = true) }
-        } else {
-            _uiState.update { it.copy(currentCardIndex = state.currentCardIndex + 1) }
+        _uiState.update { 
+            if (it.isLastCard) it.copy(showSummary = true)
+            else it.copy(currentCardIndex = it.currentCardIndex + 1)
         }
     }
 
@@ -92,12 +104,7 @@ class MainViewModel @Inject constructor(
         if (state.sessionSaved) return
 
         viewModelScope.launch {
-            val updated = GameEngine.applyPackResult(
-                state = player,
-                cards = state.drawnCards,
-                xpReward = state.packDefinition.xpReward,
-                isFreePack = false // Basic packs always consume
-            )
+            val updated = GameEngine.applyPackResult(player, state.drawnCards, state.packDefinition.xpReward)
             repository.savePlayerState(updated)
             _uiState.update {
                 it.copy(
@@ -117,11 +124,12 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             val updated = GameEngine.setUsername(player, username)
             repository.savePlayerState(updated)
+            _uiState.update { it.copy(setupComplete = true) }
         }
     }
 
-    private fun resolveSurprisePack(surpriseId: String, fallback: PackDefinition): PackDefinition? {
-        return when (surpriseId) {
+    private fun resolveSurprisePack(surpriseId: String, fallback: PackDefinition): PackDefinition? =
+        when (surpriseId) {
             "type_themed"     -> PackDataSource.typeThemedPacks.random()
             "rarity_boosted"  -> PackDataSource.rareBoostedPack
             "lucky_epic"      -> PackDataSource.luckyEpicPack
@@ -129,5 +137,4 @@ class MainViewModel @Inject constructor(
             "lucky_legendary" -> PackDataSource.luckyLegendaryPack
             else              -> null
         }
-    }
 }

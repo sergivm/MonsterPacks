@@ -124,8 +124,7 @@ class ShopViewModel @Inject constructor(
                     freePackReadyAtMs = System.currentTimeMillis() + cooldownMs
                 ),
                 cards = state.drawnCards,
-                xpReward = PackDataSource.freePack.xpReward,
-                isFreePack = true
+                xpReward = PackDataSource.freePack.xpReward
             )
             repository.savePlayerState(updated)
             
