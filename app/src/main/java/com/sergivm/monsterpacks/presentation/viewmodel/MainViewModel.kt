@@ -6,6 +6,7 @@ import com.sergivm.monsterpacks.data.repository.GameRepository
 import com.sergivm.monsterpacks.domain.engine.GameEngine
 import com.sergivm.monsterpacks.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -20,12 +21,10 @@ data class MainUiState(
     val surprisePackId: String? = null,
     val showSummary: Boolean = false,
     val sessionSaved: Boolean = false,
-    val setupComplete: Boolean = false // Prevent flickering during setup
+    val setupComplete: Boolean = false 
 ) {
     val currentCard: Card? get() = drawnCards.getOrNull(currentCardIndex)
     val isLastCard: Boolean get() = currentCardIndex >= drawnCards.lastIndex
-    
-    // Logic: Only show setup if loading finished, username empty, and setup not just completed
     val isFirstLaunch: Boolean get() = playerState != null && playerState.username.isBlank() && !setupComplete
     val isLoading: Boolean get() = playerState == null
 }
@@ -39,19 +38,27 @@ class MainViewModel @Inject constructor(
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
 
     init {
+        // Observe player state from DB
         repository.observePlayerState()
             .onEach { playerState ->
-                val now = System.currentTimeMillis()
-                val refreshed = GameEngine.refreshPackCount(playerState, now)
-                
-                // Only save if the engine actually added a pack (breaks the loop!)
-                if (refreshed !== playerState) {
-                    repository.savePlayerState(refreshed)
-                }
-                
-                _uiState.update { it.copy(playerState = refreshed) }
+                _uiState.update { it.copy(playerState = playerState) }
             }
             .launchIn(viewModelScope)
+
+        // Real-time Pack Regeneration Timer (Point 1)
+        viewModelScope.launch {
+            while (true) {
+                delay(1000L) // Check every second
+                val state = _uiState.value.playerState ?: continue
+                val now = System.currentTimeMillis()
+                
+                val refreshed = GameEngine.refreshPackCount(state, now)
+                if (refreshed !== state) {
+                    repository.savePlayerState(refreshed)
+                    // The onEach collector above will update the UI automatically
+                }
+            }
+        }
     }
 
     fun openPack() {
@@ -62,7 +69,6 @@ class MainViewModel @Inject constructor(
         val now = System.currentTimeMillis()
         val consumedPlayer = GameEngine.consumePack(player, now)
         
-        // Check surprise event
         val surpriseId: String? = if (state.packDefinition.type == PackType.BASIC) {
             GameEngine.checkSurpriseEvent()
         } else null
@@ -73,7 +79,6 @@ class MainViewModel @Inject constructor(
 
         val cards = GameEngine.rollPack(effectivePack, state.activeCollection)
 
-        // Persistence: Save the pack consumption immediately
         viewModelScope.launch {
             repository.savePlayerState(consumedPlayer)
         }

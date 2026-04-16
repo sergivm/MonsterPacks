@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -326,25 +327,38 @@ private fun UpgradeRow(
 
         Spacer(Modifier.width(12.dp))
 
-        if (upgrade.isMaxTier) {
-            Text("MAX", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
-        } else {
-            Button(
-                onClick = onPurchase,
-                enabled = !levelLocked,
-                shape = RoundedCornerShape(8.dp),
-                colors = buttonColor,
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("UPGRADE", fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        formatCost(upgrade.cost),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp,
-                        color = if (!levelLocked && !hasEnough) Color.White.copy(alpha = 0.8f) else Color.Unspecified
-                    )
+        // Fixed alignment and MAX logic (Point 1 & 2)
+        Box(
+            modifier = Modifier.width(90.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (upgrade.isMaxTier) {
+                Text(
+                    "MAX",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.ExtraBold,
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                Button(
+                    onClick = onPurchase,
+                    enabled = !levelLocked,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = buttonColor,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("UPGRADE", fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            formatCost(upgrade.cost),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 9.sp,
+                            color = if (!levelLocked && !hasEnough) Color.White.copy(alpha = 0.8f) else Color.Unspecified
+                        )
+                    }
                 }
             }
         }
@@ -354,5 +368,5 @@ private fun UpgradeRow(
 private fun formatCost(cost: PackCost): String = when (cost) {
     is PackCost.Coins -> "🪙 ${cost.amount}"
     is PackCost.Gems  -> "💎 ${cost.amount}"
-    is PackCost.Both  -> "🪙 ${cost.coins}  💎 ${cost.gems}"
+    is PackCost.Both  -> "🪙${cost.coins} 💎${cost.gems}"
 }

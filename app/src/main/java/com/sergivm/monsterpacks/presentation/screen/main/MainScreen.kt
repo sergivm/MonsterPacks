@@ -112,6 +112,11 @@ fun MainScreen(
                         onOpenPack = {
                             viewModel.openPack()
                             onPackOpeningStarted()
+                        },
+                        onOpenBulk = {
+                            // TODO: Add openBulkPacks to ViewModel
+                            viewModel.openPack() // Fallback for now
+                            onPackOpeningStarted()
                         }
                     )
                 }
@@ -126,7 +131,8 @@ fun MainScreen(
 private fun PackIdleScreen(
     playerState: PlayerState,
     packName: String,
-    onOpenPack: () -> Unit
+    onOpenPack: () -> Unit,
+    onOpenBulk: () -> Unit
 ) {
     var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(playerState.availablePacks, playerState.maxPacks) {
@@ -193,27 +199,41 @@ private fun PackIdleScreen(
             }
         }
 
-        Spacer(Modifier.weight(0.15f))
+        Spacer(Modifier.weight(0.1f))
 
         val canOpen = playerState.availablePacks > 0
-        Button(
-            onClick = onOpenPack,
-            enabled = canOpen,
-            modifier = Modifier
-                .fillMaxWidth(0.6f)
-                .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = Color.Gray.copy(alpha = 0.3f)
-            )
+        val canBulk = playerState.availablePacks >= 5 && playerState.isBulkOpenUnlocked
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = if (canOpen) "Open a Pack" else "Out of Packs",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = if (canOpen) Color.Black else Color.Gray
-            )
+            Button(
+                onClick = onOpenPack,
+                enabled = canOpen,
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text("Open a Pack", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
+            }
+
+            if (playerState.isBulkOpenUnlocked) {
+                OutlinedButton(
+                    onClick = onOpenBulk,
+                    enabled = canBulk,
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(25.dp),
+                    border = borderStroke(2.dp, if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f))
+                ) {
+                    Text("Bulk Open x5", fontWeight = FontWeight.Bold, color = if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray)
+                }
+            }
         }
 
         Spacer(Modifier.weight(0.1f))
@@ -555,6 +575,7 @@ private fun SummaryScreen(
 ) {
     val totalCoins = cards.sumOf { it.coinReward }
     val totalGems = cards.sumOf { it.gemReward }
+    val xpMult = GameEngine.getXpMultiplier(playerState.xpMultiplierLevel)
 
     Column(
         modifier = Modifier
@@ -582,32 +603,45 @@ private fun SummaryScreen(
         ) {
             RewardItem(icon = "🪙", amount = totalCoins)
             RewardItem(icon = "💎", amount = totalGems)
+            if (xpMult > 1.0f) {
+                VerticalDivider(modifier = Modifier.height(20.dp), color = Color.White.copy(alpha = 0.1f))
+                Text(
+                    text = "${String.format("%.1f", xpMult)}x XP",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
 
         Spacer(Modifier.height(32.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            cards.forEachIndexed { index, card ->
-                var visible by remember { mutableStateOf(false) }
-                LaunchedEffect(Unit) {
-                    delay(100L * index)
-                    visible = true
-                }
-
-                AnimatedVisibility(
-                    visible = visible,
-                    enter = scaleIn(animationSpec = tween(400)) + fadeIn(),
-                    modifier = Modifier.weight(1f)
+        // Show cards in a grid if there are many (Bulk Open support)
+        Box(modifier = Modifier.weight(1f)) {
+            if (cards.size <= 5) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    SummaryCardCell(card, !playerState.hasCard(card.id))
+                    cards.forEachIndexed { index, card ->
+                        var visible by remember { mutableStateOf(false) }
+                        LaunchedEffect(Unit) {
+                            delay(100L * index)
+                            visible = true
+                        }
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = scaleIn(animationSpec = tween(400)) + fadeIn(),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            SummaryCardCell(card, !playerState.hasCard(card.id))
+                        }
+                    }
                 }
+            } else {
+                // TODO: Implement flow row or grid for bulk open results (25+ cards)
             }
         }
-
-        Spacer(Modifier.weight(1f))
 
         Button(
             onClick = onSave,
@@ -679,3 +713,6 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
         }
     }
 }
+
+private fun borderStroke(width: androidx.compose.ui.unit.Dp, color: Color) = 
+    androidx.compose.foundation.BorderStroke(width, color)

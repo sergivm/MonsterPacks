@@ -50,10 +50,14 @@ class GameRepositoryImpl @Inject constructor(
         basicPackCardCountLevel = basicPackCardCountLevel,
         basicPackRegenLevel = basicPackRegenLevel,
         basicPackXpLevel = basicPackXpLevel,
+        xpMultiplierLevel = xpMultiplierLevel,
+        bulkOpenLevel = bulkOpenLevel,
         freePackCooldownLevel = freePackCooldownLevel,
         freePackGemYieldLevel = freePackGemYieldLevel,
+        freePackCoinYieldLevel = freePackCoinYieldLevel,
         freePackCardCountLevel = freePackCardCountLevel,
-        freePackStoredLevel = freePackStoredLevel
+        freePackStoredLevel = freePackStoredLevel,
+        freePackRarityLevel = freePackRarityLevel
     )
 
     private fun PlayerState.toEntity() = PlayerStateEntity(
@@ -74,9 +78,13 @@ class GameRepositoryImpl @Inject constructor(
         basicPackCardCountLevel = basicPackCardCountLevel,
         basicPackRegenLevel = basicPackRegenLevel,
         basicPackXpLevel = basicPackXpLevel,
+        xpMultiplierLevel = xpMultiplierLevel,
+        bulkOpenLevel = bulkOpenLevel,
         freePackCooldownLevel = freePackCooldownLevel,
         freePackGemYieldLevel = freePackGemYieldLevel,
+        freePackCoinYieldLevel = freePackCoinYieldLevel,
         freePackCardCountLevel = freePackCardCountLevel,
-        freePackStoredLevel = freePackStoredLevel
+        freePackStoredLevel = freePackStoredLevel,
+        freePackRarityLevel = freePackRarityLevel
     )
 }

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import java.util.Locale
 
 data class ShopUiState(
     val playerState: PlayerState = PlayerState(),
@@ -19,8 +20,6 @@ data class ShopUiState(
     val isFreePackReady: Boolean = false,
     val purchaseResult: UpgradeResult? = null,
     val nextPackRegenRemainingMs: Long = 0L,
-    
-    // Internal Pack Opening State (Point 2)
     val isOpeningFreePack: Boolean = false,
     val drawnCards: List<Card> = emptyList(),
     val currentCardIndex: Int = 0,
@@ -52,6 +51,7 @@ class ShopViewModel @Inject constructor(
 
         viewModelScope.launch {
             while (true) {
+                delay(1000L)
                 val nowMs = System.currentTimeMillis()
                 val state = _uiState.value.playerState
                 val regenInterval = GameEngine.getPackRegenIntervalMs(state.basicPackRegenLevel)
@@ -63,7 +63,6 @@ class ShopViewModel @Inject constructor(
                         nextPackRegenRemainingMs = state.nextPackRegenRemainingMs(nowMs, regenInterval)
                     )
                 }
-                delay(1_000L)
             }
         }
     }
@@ -82,64 +81,40 @@ class ShopViewModel @Inject constructor(
 
     fun clearPurchaseResult() = _uiState.update { it.copy(purchaseResult = null) }
 
-    // ── Free Pack Logic (Directly in Shop) ───────────────────────────────────
-
     fun claimFreePack() {
         val state = _uiState.value
-        val player = state.playerState
-        if (!player.isFreePackReady(System.currentTimeMillis())) return
-        
-        // Roll cards for the Free Pack
+        if (!state.playerState.isFreePackReady(System.currentTimeMillis())) return
         val cards = GameEngine.rollPack(PackDataSource.freePack, CardDataSource.genesisCardCollection)
-        
-        _uiState.update {
-            it.copy(
-                isOpeningFreePack = true,
-                drawnCards = cards,
-                currentCardIndex = 0,
-                showSummary = false
-            )
-        }
+        _uiState.update { it.copy(isOpeningFreePack = true, drawnCards = cards, currentCardIndex = 0, showSummary = false) }
     }
 
     fun nextFreeCard() {
-        val state = _uiState.value
-        if (state.isLastCard) {
-            _uiState.update { it.copy(showSummary = true) }
-        } else {
-            _uiState.update { it.copy(currentCardIndex = state.currentCardIndex + 1) }
+        _uiState.update { 
+            if (it.isLastCard) it.copy(showSummary = true)
+            else it.copy(currentCardIndex = it.currentCardIndex + 1)
         }
     }
 
     fun finishFreePack() {
         val state = _uiState.value
         viewModelScope.launch {
-            // Apply results (Gems + Cards)
-            val gemReward = 5L + state.playerState.freePackGemYieldLevel * 2
+            val gemReward = 5L + state.playerState.freePackGemYieldLevel * 5
+            val coinReward = state.playerState.freePackCoinYieldLevel * 100L
             val cooldownMs = freeCooldownMs(state.playerState.freePackCooldownLevel)
             
             val updated = GameEngine.applyPackResult(
                 state = state.playerState.copy(
                     gems = state.playerState.gems + gemReward,
+                    coins = state.playerState.coins + coinReward,
                     freePackReadyAtMs = System.currentTimeMillis() + cooldownMs
                 ),
                 cards = state.drawnCards,
                 xpReward = PackDataSource.freePack.xpReward
             )
             repository.savePlayerState(updated)
-            
-            _uiState.update {
-                it.copy(
-                    isOpeningFreePack = false,
-                    drawnCards = emptyList(),
-                    currentCardIndex = 0,
-                    showSummary = false
-                )
-            }
+            _uiState.update { it.copy(isOpeningFreePack = false, drawnCards = emptyList(), currentCardIndex = 0, showSummary = false) }
         }
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun tryPurchase(state: PlayerState, upgrade: Upgrade): UpgradeResult {
         if (upgrade.isMaxTier) return UpgradeResult.AlreadyMaxTier
@@ -170,10 +145,17 @@ class ShopViewModel @Inject constructor(
         return when {
             upgrade.id.startsWith("free_cooldown") -> baseState.copy(freePackCooldownLevel = state.freePackCooldownLevel + 1)
             upgrade.id.startsWith("free_gems")     -> baseState.copy(freePackGemYieldLevel = state.freePackGemYieldLevel + 1)
+            upgrade.id.startsWith("free_coins")    -> baseState.copy(freePackCoinYieldLevel = state.freePackCoinYieldLevel + 1)
+            upgrade.id.startsWith("free_count")    -> baseState.copy(freePackCardCountLevel = state.freePackCardCountLevel + 1)
+            upgrade.id.startsWith("free_rarity")   -> baseState.copy(freePackRarityLevel = state.freePackRarityLevel + 1)
             
-            upgrade.id.startsWith("basic_rarity")  -> baseState.copy(basicPackRarityLevel = state.basicPackRarityLevel + 1)
             upgrade.id.startsWith("basic_capacity")-> baseState.copy(basicPackCapacityLevel = state.basicPackCapacityLevel + 1, maxPacks = state.maxPacks + 10)
             upgrade.id.startsWith("basic_regen")   -> baseState.copy(basicPackRegenLevel = state.basicPackRegenLevel + 1)
+            upgrade.id.startsWith("basic_count")   -> baseState.copy(basicPackCardCountLevel = state.basicPackCardCountLevel + 1)
+            upgrade.id.startsWith("basic_rarity")  -> baseState.copy(basicPackRarityLevel = state.basicPackRarityLevel + 1)
+            
+            upgrade.id.startsWith("global_xp")     -> baseState.copy(xpMultiplierLevel = state.xpMultiplierLevel + 1)
+            upgrade.id.startsWith("global_bulk")   -> baseState.copy(bulkOpenLevel = state.bulkOpenLevel + 1)
             
             else -> baseState
         }
@@ -182,53 +164,94 @@ class ShopViewModel @Inject constructor(
     private fun buildUpgradeList(state: PlayerState): List<Upgrade> {
         val upgrades = mutableListOf<Upgrade>()
         
+        // ── GLOBAL UPGRADES ──
+        val xpLvl = state.xpMultiplierLevel
+        upgrades.add(Upgrade(
+            id = "global_xp_t${xpLvl + 1}",
+            name = "XP Multiplier",
+            description = "Earn more Player XP from every pack.",
+            currentValue = "${String.format(Locale.US, "%.1f", GameEngine.getXpMultiplier(xpLvl))}x",
+            nextValue = "${String.format(Locale.US, "%.1f", GameEngine.getXpMultiplier(xpLvl + 1))}x",
+            cost = PackCost.Coins(2000L + xpLvl * 1000L),
+            requiredLevel = 5, tier = xpLvl + 1, maxTier = 10
+        ))
+
+        val bulkLvl = state.bulkOpenLevel
+        upgrades.add(Upgrade(
+            id = "global_bulk_t${bulkLvl + 1}",
+            name = "Bulk Opening",
+            description = "Unlocks the ability to open 5 packs at once.",
+            currentValue = if (bulkLvl > 0) "Unlocked" else "Locked",
+            nextValue = "Unlock x5",
+            cost = PackCost.Gems(200L),
+            requiredLevel = 5, tier = bulkLvl, maxTier = 1 // Set to level 5, fixed tier logic
+        ))
+
+        // ── BASIC PACK UPGRADES ──
         val bRegen = state.basicPackRegenLevel
         upgrades.add(Upgrade(
             id = "basic_regen_t${bRegen + 1}",
-            name = "Pack Regeneration",
-            description = "Reduces basic pack generation time.",
+            name = "Basic Regen Speed",
+            description = "Reduces time to generate new basic packs.",
             currentValue = "${GameEngine.getPackRegenIntervalMs(bRegen) / 60000} min",
             nextValue = "${GameEngine.getPackRegenIntervalMs(bRegen + 1) / 60000} min",
             cost = PackCost.Coins(500L + bRegen * 300L),
-            requiredLevel = 3,
-            tier = bRegen + 1,
-            maxTier = 5
+            requiredLevel = 3, tier = bRegen + 1, maxTier = 5
         ))
 
         val bCapacity = state.basicPackCapacityLevel
         upgrades.add(Upgrade(
             id = "basic_capacity_t${bCapacity + 1}",
-            name = "Pack Storage",
-            description = "Increases max basic packs.",
-            currentValue = "${state.maxPacks} packs",
-            nextValue = "${state.maxPacks + 10} packs",
+            name = "Basic Storage",
+            description = "Increases max basic pack capacity.",
+            currentValue = "${state.maxPacks}",
+            nextValue = "${state.maxPacks + 10}",
             cost = PackCost.Coins(300L + bCapacity * 200L),
-            requiredLevel = 2,
-            tier = bCapacity + 1,
-            maxTier = 5
+            requiredLevel = 2, tier = bCapacity + 1, maxTier = 10
         ))
 
+        val bCount = state.basicPackCardCountLevel
+        upgrades.add(Upgrade(
+            id = "basic_count_t${bCount + 1}",
+            name = "Basic Card Count",
+            description = "Increases cards per basic pack.",
+            currentValue = "${5 + bCount} cards",
+            nextValue = "${5 + bCount + 1} cards",
+            cost = PackCost.Gems(50L + bCount * 50L),
+            requiredLevel = 6, tier = bCount + 1, maxTier = 5
+        ))
+
+        // ── FREE PACK UPGRADES ──
         val fCooldown = state.freePackCooldownLevel
         upgrades.add(Upgrade(
             id = "free_cooldown_t${fCooldown + 1}",
-            name = "Free Pack Cooldown",
+            name = "Free Cooldown",
             description = "Reduces time between free packs.",
             currentValue = formatCooldown(freeCooldownMs(fCooldown)),
             nextValue = formatCooldown(freeCooldownMs(fCooldown + 1)),
             cost = PackCost.Both(coins = 200L, gems = 10L),
-            requiredLevel = 3,
-            tier = fCooldown + 1,
-            maxTier = 5
+            requiredLevel = 3, tier = fCooldown + 1, maxTier = 5
+        ))
+
+        val fGems = state.freePackGemYieldLevel
+        upgrades.add(Upgrade(
+            id = "free_gems_t${fGems + 1}",
+            name = "Free Gem Yield",
+            description = "Increases gem rewards from free packs.",
+            currentValue = "+${5 + fGems * 5} 💎",
+            nextValue = "+${5 + (fGems + 1) * 5} 💎",
+            cost = PackCost.Coins(1000L),
+            requiredLevel = 4, tier = fGems + 1, maxTier = 5
         ))
 
         return upgrades
     }
 
-    private fun freeCooldownMs(tier: Int): Long = maxOf(TimeUnit.MINUTES.toMillis(1), TimeUnit.MINUTES.toMillis(10) - tier * TimeUnit.MINUTES.toMillis(1))
+    private fun freeCooldownMs(tier: Int): Long = 
+        maxOf(TimeUnit.MINUTES.toMillis(1), TimeUnit.MINUTES.toMillis(10) - tier * TimeUnit.MINUTES.toMillis(1))
 
     private fun formatCooldown(ms: Long): String {
-        val totalSeconds = ms / 1000
-        val totalMinutes = totalSeconds / 60
+        val totalMinutes = ms / 60000
         return "$totalMinutes min"
     }
 }

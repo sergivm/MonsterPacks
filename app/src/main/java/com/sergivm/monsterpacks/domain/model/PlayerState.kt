@@ -20,17 +20,24 @@ data class PlayerState(
     // Free Pack System
     val freePackReadyAtMs: Long? = null,
     
-    // Upgrade Levels
-    val basicPackRarityLevel: Int = 0,    // Increases drop weights for EPIC+
-    val basicPackCapacityLevel: Int = 0,  // Increases maxPacks (Initial 50)
-    val basicPackCardCountLevel: Int = 0, // Increases cards per pack (Initial 5, Max 10)
-    val basicPackRegenLevel: Int = 0,     // Reduces time between pack regeneration
-    val basicPackXpLevel: Int = 0,        // Increases XP from basic packs
+    // ── Upgrade Levels ──
     
+    // Basic Pack
+    val basicPackRarityLevel: Int = 0,
+    val basicPackCapacityLevel: Int = 0,
+    val basicPackCardCountLevel: Int = 0,
+    val basicPackRegenLevel: Int = 0,
+    val basicPackXpLevel: Int = 0,
+    val xpMultiplierLevel: Int = 0,    // NEW
+    val bulkOpenLevel: Int = 0,       // NEW (0: Locked, 1: Unlocked x5)
+    
+    // Free Pack
     val freePackCooldownLevel: Int = 0,
     val freePackGemYieldLevel: Int = 0,
+    val freePackCoinYieldLevel: Int = 0,
     val freePackCardCountLevel: Int = 0,
-    val freePackStoredLevel: Int = 0
+    val freePackStoredLevel: Int = 0,
+    val freePackRarityLevel: Int = 0
 ) {
     /** Returns true if the player has not yet set a username (first launch). */
     val needsUsername: Boolean get() = username.isBlank()
@@ -56,4 +63,7 @@ data class PlayerState(
         val elapsed = nowMs - lastPackRegenTimeMs
         return (regenIntervalMs - (elapsed % regenIntervalMs)).coerceAtLeast(0L)
     }
+
+    /** Returns true if Bulk Open feature is unlocked. */
+    val isBulkOpenUnlocked: Boolean get() = bulkOpenLevel > 0
 }

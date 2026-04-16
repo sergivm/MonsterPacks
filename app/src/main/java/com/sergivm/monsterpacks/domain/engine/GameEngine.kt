@@ -50,10 +50,10 @@ object GameEngine {
             .coerceAtLeast(TimeUnit.MINUTES.toMillis(1))
     }
 
-    /**
-     * Stable refresh logic. 
-     * returns the same instance if no packs were added, preventing save loops.
-     */
+    fun getXpMultiplier(level: Int): Float {
+        return 1.0f + (level * 0.2f) // Tier 0: 1.0x, Tier 1: 1.2x, Tier 2: 1.4x...
+    }
+
     fun refreshPackCount(state: PlayerState, nowMs: Long): PlayerState {
         if (state.availablePacks >= state.maxPacks) return state
 
@@ -66,13 +66,7 @@ object GameEngine {
         if (packsToAdd <= 0) return state
 
         val newCount = (state.availablePacks + packsToAdd).coerceAtMost(state.maxPacks)
-        
-        // If capped, reset timer to now. If not, move timer forward by used intervals.
-        val newRegenTime = if (newCount >= state.maxPacks) {
-            nowMs
-        } else {
-            state.lastPackRegenTimeMs + (packsToAdd * interval)
-        }
+        val newRegenTime = if (newCount >= state.maxPacks) nowMs else state.lastPackRegenTimeMs + (packsToAdd * interval)
 
         return state.copy(
             availablePacks = newCount,
@@ -80,9 +74,8 @@ object GameEngine {
         )
     }
 
-    fun consumePack(state: PlayerState, nowMs: Long): PlayerState {
-        val newCount = (state.availablePacks - 1).coerceAtLeast(0)
-        // If we were full, the countdown for the empty slot starts EXACTLY now.
+    fun consumePack(state: PlayerState, nowMs: Long, count: Int = 1): PlayerState {
+        val newCount = (state.availablePacks - count).coerceAtLeast(0)
         val newRegenTime = if (state.availablePacks >= state.maxPacks) nowMs else state.lastPackRegenTimeMs
         
         return state.copy(
@@ -102,7 +95,11 @@ object GameEngine {
             copies[card.id] = (copies[card.id] ?: 0) + 1
         }
 
-        val newXp = state.xp + xpReward
+        // Apply XP Multiplier
+        val multiplier = getXpMultiplier(state.xpMultiplierLevel)
+        val finalXp = (xpReward * multiplier).toLong()
+
+        val newXp = state.xp + finalXp
         return state.copy(
             coins = coins,
             gems = gems,
