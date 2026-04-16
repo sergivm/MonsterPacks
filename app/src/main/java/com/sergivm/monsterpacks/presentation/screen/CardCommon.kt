@@ -4,6 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -22,22 +25,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
 import com.sergivm.monsterpacks.R
-import com.sergivm.monsterpacks.domain.model.Card
-import com.sergivm.monsterpacks.domain.model.Rarity
+import com.sergivm.monsterpacks.domain.engine.GameEngine
+import com.sergivm.monsterpacks.domain.model.*
+import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
+import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
+import java.util.Locale
 import kotlin.random.Random
+
+data class Particle(
+    val color: Color,
+    var pos: Offset = Offset(0f, 0f),
+    var velocity: Offset,
+    var alpha: Float = 1f,
+    val radius: Float = Random.nextFloat() * 10f + 5f
+) {
+    fun update() {
+        pos += velocity
+        velocity *= 0.96f 
+        alpha -= 0.015f 
+    }
+}
 
 @Composable
 fun NewTag(
     modifier: Modifier = Modifier,
-    scale: Float = 1f,
     fontSize: TextUnit = 12.sp,
     horizontalPadding: Dp = 8.dp,
-    verticalPadding: Dp = 4.dp
+    verticalPadding: Dp = 2.dp,
+    minWidth: Dp = Dp.Unspecified
 ) {
     val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
     val pulseScale by pulseTransition.animateFloat(
         initialValue = 1f,
-        targetValue = 1.15f,
+        targetValue = 1.1f,
         animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "Scale"
     )
@@ -45,16 +65,25 @@ fun NewTag(
     Surface(
         color = MaterialTheme.colorScheme.primary,
         shape = RoundedCornerShape(4.dp),
-        modifier = modifier.scale(pulseScale * scale)
+        modifier = modifier.graphicsLayer {
+            scaleX = pulseScale
+            scaleY = pulseScale
+        }
     ) {
-        Text(
-            stringResource(R.string.new_card),
-            color = Color.Black,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = fontSize,
-            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
-            textAlign = TextAlign.Center
-        )
+        Box(
+            modifier = Modifier.widthIn(min = minWidth).padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = stringResource(R.string.new_card),
+                color = Color.Black,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = fontSize,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
     }
 }
 
@@ -112,7 +141,8 @@ fun CardView(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
 
             Spacer(Modifier.height(12.dp))
@@ -149,7 +179,8 @@ fun CardView(
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
-                    lineHeight = 18.sp
+                    lineHeight = 18.sp,
+                    maxLines = 2
                 )
                 Spacer(Modifier.height(12.dp))
             }
@@ -201,7 +232,7 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
         context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
     }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .aspectRatio(0.65f)
@@ -230,28 +261,16 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
         }
         
         if (isNew) {
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(4.dp))
             NewTag(
-                scale = 0.6f,
-                fontSize = 7.sp,
-                horizontalPadding = 3.dp,
-                verticalPadding = 1.dp
+                fontSize = 8.sp,
+                horizontalPadding = 4.dp,
+                verticalPadding = 1.dp,
+                minWidth = 50.dp
             )
+        } else {
+            Spacer(Modifier.height(20.dp))
         }
-    }
-}
-
-class Particle(
-    val color: Color,
-    var pos: Offset = Offset(0f, 0f),
-    var velocity: Offset,
-    var alpha: Float = 1f,
-    val radius: Float = Random.nextFloat() * 10f + 5f
-) {
-    fun update() {
-        pos += velocity
-        velocity *= 0.96f 
-        alpha -= 0.015f 
     }
 }
 
@@ -319,7 +338,7 @@ fun CardRevealAnimationContainer(
         ) {
              header()
 
-             Spacer(Modifier.height(32.dp))
+             Spacer(Modifier.weight(1f))
 
              AnimatedContent(
                 targetState = card,
@@ -357,9 +376,100 @@ fun CardRevealAnimationContainer(
                 }
             }
 
-            Spacer(Modifier.weight(0.1f))
+            Spacer(Modifier.weight(1.2f))
             footer()
             Spacer(Modifier.height(32.dp))
         }
+    }
+}
+
+@Composable
+fun SummaryScreen(
+    cards: List<Card>,
+    playerState: PlayerState,
+    onSave: () -> Unit,
+    title: String = stringResource(R.string.pack_opened),
+    actionLabel: String = stringResource(R.string.done)
+) {
+    val totalCoins = cards.sumOf { it.coinReward }
+    val totalGems = cards.sumOf { it.gemReward }
+    val xpMult = GameEngine.getXpMultiplier(playerState.xpMultiplierLevel)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundDark)
+            .padding(top = 24.dp, start = 16.dp, end = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(SurfaceVariantDark)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RewardItem(icon = "🪙", amount = totalCoins)
+            RewardItem(icon = "💎", amount = totalGems)
+            if (xpMult > 1.0f) {
+                VerticalDivider(modifier = Modifier.height(20.dp), color = Color.White.copy(alpha = 0.1f))
+                Text(
+                    text = "${String.format(Locale.US, "%.1f", xpMult)}x XP",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4),
+            contentPadding = PaddingValues(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f).fillMaxWidth()
+        ) {
+            itemsIndexed(cards, key = { index, card -> "${card.id}_$index" }) { _, card ->
+                SummaryCardCell(card, !playerState.hasCard(card.id))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        Button(
+            onClick = onSave,
+            modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Text(actionLabel, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+        }
+
+        Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+fun RewardItem(icon: String, amount: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(icon, fontSize = 18.sp)
+        Text(
+            text = "+$amount",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }

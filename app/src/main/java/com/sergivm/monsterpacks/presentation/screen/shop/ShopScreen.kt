@@ -139,12 +139,7 @@ private fun FreePackRevealView(
                     isNewCard = !playerState.hasCard(currentCard.id),
                     copyCount = playerState.copiesOf(currentCard.id),
                     header = {
-                        Text(
-                            stringResource(R.string.shop_free_pack_reveal),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 2.sp
-                        )
+                        // Removed the title as requested
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "${currentIndex + 1} / ${cards.size}",
@@ -163,51 +158,14 @@ private fun FreePackRevealView(
                 )
             }
         } else {
-            val totalCoins = cards.sumOf { it.coinReward }
-            val totalGems = cards.sumOf { it.gemReward } + (5 + playerState.freePackGemYieldLevel * 2)
-
-            Column(
-                modifier = Modifier.fillMaxSize().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(stringResource(R.string.pack_summary), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                
-                Spacer(Modifier.height(16.dp))
-
-                // Rewards Row
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(SurfaceVariantDark)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RewardItem(icon = "🪙", amount = totalCoins)
-                    RewardItem(icon = "💎", amount = totalGems.toInt())
-                }
-
-                Spacer(Modifier.height(32.dp))
-                
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    cards.forEach { card ->
-                        Box(modifier = Modifier.weight(1f)) {
-                            SummaryCardCell(card = card, isNew = !playerState.hasCard(card.id))
-                        }
-                    }
-                }
-                
-                Spacer(Modifier.height(48.dp))
-                
-                Button(
-                    onClick = onFinish,
-                    modifier = Modifier.fillMaxWidth(0.7f).height(52.dp),
-                    shape = RoundedCornerShape(26.dp)
-                ) {
-                    Text(stringResource(R.string.shop_claim_rewards), fontWeight = FontWeight.Bold)
-                }
-            }
+            // Use the shared SummaryScreen component for consistency
+            SummaryScreen(
+                cards = cards,
+                playerState = playerState,
+                title = stringResource(R.string.pack_summary),
+                actionLabel = stringResource(R.string.shop_claim_rewards),
+                onSave = onFinish
+            )
         }
     }
 }

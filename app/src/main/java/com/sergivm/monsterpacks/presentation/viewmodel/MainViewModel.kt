@@ -91,6 +91,9 @@ class MainViewModel @Inject constructor(
             totalXpReward += effectivePack.xpReward
         }
 
+        // Sort all combined cards by rarity ordinal so they reveal from least to most rare
+        allCards.sortBy { it.rarity.ordinal }
+
         viewModelScope.launch {
             repository.savePlayerState(consumedPlayer)
         }
