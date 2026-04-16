@@ -1,0 +1,23 @@
+# MonsterPacks Coding Standards & Rules
+
+## 🏗 Architecture (DDD)
+- **Domain Layer:** Contains Models, Repositories (Interfaces), and UseCases. NO dependencies on Android frameworks or Data/Presentation layers.
+- **Data Layer:** Contains Repository Implementations, Room Entities, DAOs, and DataSources.
+- **Presentation Layer:** Contains ViewModels, Screens (Compose), and UI components.
+
+## 🛠 Tech Stack Requirements
+- **Language:** Kotlin 1.9+ / Java 17.
+- **UI:** Jetpack Compose with Material 3.
+- **DI:** Hilt (`@HiltViewModel`, `@Inject`).
+- **Async:** Kotlin Coroutines and Flow.
+- **State:** ViewModels must expose a single `UiState` via `StateFlow`.
+
+## 📝 Naming Conventions
+- **Screens:** `[Feature]Screen.kt` (e.g., `ShopScreen.kt`).
+- **ViewModels:** `[Feature]ViewModel.kt`.
+- **UI Components:** Prefix reusable components with `Mp` (e.g., `MpCardItem.kt`).
+
+## 🃏 Game Logic Specifics
+- **Immutability:** Always use `data class` with `val`. Never use `var` in domain models.
+- **Cards:** Never mutate a `Card` object. Mutate the `PlayerState` or `Collection` instead.
+- **Resource Management:** Currencies (Coins/Gems) should always be handled via the `GameEngine`.
