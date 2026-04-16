@@ -18,13 +18,19 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
 import com.sergivm.monsterpacks.domain.model.UpgradeResult
+import com.sergivm.monsterpacks.domain.model.PackDataSource
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.ui.theme.*
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
+import com.sergivm.monsterpacks.presentation.viewmodel.MainViewModel
 
 @Composable
-fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
-    val state by viewModel.uiState.collectAsState()
+fun ShopScreen(
+    shopViewModel: ShopViewModel = hiltViewModel(),
+    mainViewModel: MainViewModel = hiltViewModel(), // Shared logic to trigger pack opening
+    onNavigateToPacks: () -> Unit = {}
+) {
+    val state by shopViewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -33,7 +39,6 @@ fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
     ) {
         MonsterPacksTopBar(playerState = state.playerState)
 
-        // Shop title bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -53,12 +58,15 @@ fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Free Pack claim row
             item {
                 FreePackRow(
                     isReady = state.isFreePackReady,
                     cooldownRemainingMs = state.freePackCooldownRemainingMs,
-                    onClaim = { viewModel.claimFreePack() }
+                    onClaim = { 
+                        shopViewModel.claimFreePack()
+                        mainViewModel.openPack(PackDataSource.freePack)
+                        onNavigateToPacks()
+                    }
                 )
             }
 
@@ -79,22 +87,18 @@ fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
                     playerLevel = state.playerState.level,
                     playerCoins = state.playerState.coins,
                     playerGems = state.playerState.gems,
-                    onPurchase = { viewModel.purchaseUpgrade(upgrade) }
+                    onPurchase = { shopViewModel.purchaseUpgrade(upgrade) }
                 )
             }
         }
     }
 
-    // Purchase result message (Snackbar or Toast logic could go here)
     state.purchaseResult?.let { result ->
         LaunchedEffect(result) {
-            // Clear result after it's processed
-            viewModel.clearPurchaseResult()
+            shopViewModel.clearPurchaseResult()
         }
     }
 }
-
-// ── Free Pack Row ────────────────────────────────────────────────────────────
 
 @Composable
 private fun FreePackRow(
@@ -140,8 +144,6 @@ private fun FreePackRow(
     }
 }
 
-// ── Upgrade Row ───────────────────────────────────────────────────────────────
-
 @Composable
 private fun UpgradeRow(
     upgrade: Upgrade,
@@ -159,13 +161,8 @@ private fun UpgradeRow(
     }
 
     val alpha = if (levelLocked) 0.4f else 1f
-    
-    // Point 5: reddish tint if unlocked but not enough resources
     val buttonColor = if (!levelLocked && !hasEnough) {
-        ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF922B21), // Dark Reddish
-            contentColor = Color.White
-        )
+        ButtonDefaults.buttonColors(containerColor = Color(0xFF922B21), contentColor = Color.White)
     } else {
         ButtonDefaults.buttonColors()
     }
@@ -179,7 +176,6 @@ private fun UpgradeRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: name + before→after
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 upgrade.name,
@@ -205,14 +201,8 @@ private fun UpgradeRow(
 
         Spacer(Modifier.width(12.dp))
 
-        // Right: upgrade button with cost
         if (upgrade.isMaxTier) {
-            Text(
-                "MAX",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Text("MAX", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
         } else {
             Button(
                 onClick = onPurchase,

@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class MainUiState(
-    val playerState: PlayerState = PlayerState(),
+    val playerState: PlayerState? = null, // Null means still loading from DB
     val activeCollection: CardCollection = CardDataSource.genesisCardCollection,
     val packDefinition: PackDefinition = PackDataSource.basicPack,
     // Pack opening session state
@@ -25,8 +25,9 @@ data class MainUiState(
     val currentCard: Card? get() = drawnCards.getOrNull(currentCardIndex)
     val isLastCard: Boolean get() = currentCardIndex >= drawnCards.lastIndex
     
-    // Updated logic: Only show setup if username is blank AND we haven't set it in this session
-    val isFirstLaunch: Boolean get() = playerState.username.isBlank()
+    // Logic: Only show setup if we finished loading AND username is blank
+    val isFirstLaunch: Boolean get() = playerState != null && playerState.username.isBlank()
+    val isLoading: Boolean get() = playerState == null
 }
 
 @HiltViewModel
@@ -57,10 +58,11 @@ class MainViewModel @Inject constructor(
      */
     fun openPack(customPack: PackDefinition? = null) {
         val state = _uiState.value
+        val player = state.playerState ?: return
         val pack = customPack ?: state.packDefinition
         val collection = state.activeCollection
 
-        if (customPack == null && state.playerState.availablePacks <= 0) return
+        if (customPack == null && player.availablePacks <= 0) return
 
         // Check surprise event (only applies to default BASIC packs)
         val surpriseId: String? = if (customPack == null && pack.type == PackType.BASIC) {
@@ -96,11 +98,12 @@ class MainViewModel @Inject constructor(
 
     fun saveSession() {
         val state = _uiState.value
+        val player = state.playerState ?: return
         if (state.sessionSaved) return
 
         viewModelScope.launch {
             val updated = GameEngine.applyPackResult(
-                state = state.playerState,
+                state = player,
                 cards = state.drawnCards,
                 xpReward = state.packDefinition.xpReward,
                 isFreePack = state.surprisePackId == null && state.drawnCards.size == 3 // Simple check for free pack
@@ -120,10 +123,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun setUsername(username: String) {
+        val player = _uiState.value.playerState ?: return
         viewModelScope.launch {
-            val updated = GameEngine.setUsername(_uiState.value.playerState, username)
+            val updated = GameEngine.setUsername(player, username)
             repository.savePlayerState(updated)
-            // The flow will naturally update the UI via observation
         }
     }
 

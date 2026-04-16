@@ -4,7 +4,7 @@ package com.sergivm.monsterpacks.domain.model
  * Static data source for all cards in the initial collection.
  * Images use placeholder resource names — replace with final art resources when ready.
  *
- * Convention for imageRes: "card_{id}_placeholder"
+ * Convention for imageRes: "card_{id}_design"
  * Convention for variants: they share the base card's visual slot until final art is added.
  *
  * TODO: Replace all imageRes strings with actual drawable resource names once art is ready.
@@ -207,7 +207,7 @@ object CardDataSource {
         type = type,
         rarity = rarity,
         description = description,
-        imageRes = "card_${id}_placeholder", // Uses the global unique ID
+        imageRes = "card_${id}_design", // Uses the global unique ID
         isVariant = isVariant,
         baseCardId = baseCardId
     )

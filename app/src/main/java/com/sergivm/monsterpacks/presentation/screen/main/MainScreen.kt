@@ -51,11 +51,21 @@ fun MainScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Fixed: Logic to only show setup if username is truly blank
+    // Handle initial loading
+    if (state.isLoading) {
+        Box(modifier = Modifier.fillMaxSize().background(BackgroundDark), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        return
+    }
+
+    // Persistent username logic
     if (state.isFirstLaunch) {
         UsernameSetupScreen(onConfirm = { viewModel.setUsername(it) })
         return
     }
+
+    val playerState = state.playerState ?: return // Safety check
 
     Box(
         modifier = Modifier
@@ -77,7 +87,7 @@ fun MainScreen(
                 2 -> {
                     SummaryScreen(
                         cards = state.drawnCards,
-                        playerState = state.playerState,
+                        playerState = playerState,
                         onSave = {
                             viewModel.saveSession()
                             onPackOpeningFinished()
@@ -90,16 +100,16 @@ fun MainScreen(
                             card = card,
                             cardIndex = state.currentCardIndex,
                             totalCards = state.drawnCards.size,
-                            isNewCard = state.playerState.copiesOf(card.id) == 0,
-                            copyCount = state.playerState.copiesOf(card.id),
-                            playerState = state.playerState,
+                            isNewCard = playerState.copiesOf(card.id) == 0,
+                            copyCount = playerState.copiesOf(card.id),
+                            playerState = playerState,
                             onTap = { viewModel.revealNextCard() }
                         )
                     }
                 }
                 else -> {
                     PackIdleScreen(
-                        playerState = state.playerState,
+                        playerState = playerState,
                         packName = state.packDefinition.name,
                         onOpenPack = {
                             viewModel.openPack()
@@ -267,12 +277,9 @@ private fun CardRevealScreen(
     onTap: () -> Unit
 ) {
     val shakeAnim = remember { Animatable(0f) }
-    
-    // Particle system state
     val particles = remember { mutableStateListOf<Particle>() }
     
     LaunchedEffect(card) {
-        // Screen shake for God/Legendary
         if (card.rarity >= Rarity.LEGENDARY) {
             repeat(6) {
                 shakeAnim.animateTo(if (it % 2 == 0) 10f else -10f, tween(50))
@@ -280,25 +287,23 @@ private fun CardRevealScreen(
             shakeAnim.animateTo(0f, tween(50))
         }
         
-        // Spawn particles for high rarity
         if (card.rarity >= Rarity.SPECIAL) {
-            repeat(30) {
+            repeat(40) {
                 particles.add(Particle(
                     color = card.rarity.color,
-                    velocity = Offset(Random.nextFloat() * 20f - 10f, Random.nextFloat() * 20f - 10f)
+                    velocity = Offset(Random.nextFloat() * 30f - 15f, Random.nextFloat() * 30f - 15f)
                 ))
             }
         }
     }
 
-    // Particle update loop
     LaunchedEffect(Unit) {
         while(true) {
             withFrameMillis { 
                 val toRemove = mutableListOf<Particle>()
                 particles.forEach { 
-                    it.update() 
-                    if (it.alpha <= 0f) toRemove.add(it)
+                    p -> p.update() 
+                    if (p.alpha <= 0f) toRemove.add(p)
                 }
                 particles.removeAll(toRemove)
             }
@@ -306,7 +311,6 @@ private fun CardRevealScreen(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Particle Layer
         Canvas(modifier = Modifier.fillMaxSize()) {
             particles.forEach { p ->
                 drawCircle(
@@ -324,7 +328,7 @@ private fun CardRevealScreen(
                 .graphicsLayer { translationX = shakeAnim.value },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            MonsterPacksTopBar(playerState = playerState)
+             MonsterPacksTopBar(playerState = playerState)
 
             Spacer(Modifier.weight(0.05f))
 
@@ -374,25 +378,19 @@ private fun CardRevealScreen(
     }
 }
 
-// ── Particles ─────────────────────────────────────────────────────────────────
-
 private class Particle(
     val color: Color,
     var pos: Offset = Offset(0f, 0f),
     var velocity: Offset,
     var alpha: Float = 1f,
-    val radius: Float = Random.nextFloat() * 8f + 4f
+    val radius: Float = Random.nextFloat() * 10f + 5f
 ) {
     fun update() {
         pos += velocity
-        velocity *= 0.98f // friction
-        alpha -= 0.02f // fade
+        velocity *= 0.96f 
+        alpha -= 0.015f 
     }
 }
-
-// TODO: Future improvement - vary particle effects (shape, behavior) based on card.type (e.g. fire for INFERNAL, stars for CELESTIAL)
-
-// ── Card View ─────────────────────────────────────────────────────────────────
 
 @Composable
 fun CardView(
@@ -548,8 +546,6 @@ fun CardView(
         }
     }
 }
-
-// ── Summary Screen ────────────────────────────────────────────────────────────
 
 @Composable
 private fun SummaryScreen(

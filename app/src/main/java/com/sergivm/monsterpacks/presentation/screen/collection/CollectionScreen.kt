@@ -60,7 +60,6 @@ fun CollectionScreen(viewModel: CollectionViewModel = hiltViewModel()) {
                     CollectionCardCell(
                         card = card,
                         owned = owned,
-                        copyCount = state.playerState.copiesOf(card.id),
                         onClick = { viewModel.selectCard(card) }
                     )
                 }
@@ -250,7 +249,6 @@ private fun CollectionHeader(
 private fun CollectionCardCell(
     card: Card,
     owned: Boolean,
-    copyCount: Int,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -261,8 +259,12 @@ private fun CollectionCardCell(
     Box(
         modifier = Modifier
             .aspectRatio(0.7f)
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (owned) card.type.color.copy(alpha = 0.75f) else Color(0xFF1A1A1A))
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (owned) Color.Black else Color(0xFF1A1A1A))
+            .then(
+                if (owned) Modifier.border(2.dp, card.type.color, RoundedCornerShape(8.dp))
+                else Modifier
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -271,30 +273,28 @@ private fun CollectionCardCell(
                 Image(
                     painter = painterResource(id = imageResId),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.5f
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp) // Gap for the colored frame
+                        .clip(RoundedCornerShape(6.dp)),
+                    contentScale = ContentScale.Crop
                 )
             }
             
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(4.dp)
+            // Rarity icon at bottom right
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(6.dp),
+                contentAlignment = Alignment.BottomEnd
             ) {
-                Text(card.rarity.icon, fontSize = 12.sp)
-                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = card.name,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    fontSize = 9.sp
+                    text = card.rarity.icon,
+                    fontSize = 10.sp,
+                    modifier = Modifier
+                        .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                        .padding(2.dp)
                 )
-                if (copyCount > 1) {
-                    Text("×$copyCount", style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.7f), fontSize = 8.sp)
-                }
             }
         } else {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -338,16 +338,17 @@ private fun CardDetailDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.Black.copy(alpha = 0.3f)),
+                        .height(220.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black)
+                        .border(3.dp, card.type.color, RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (imageResId != 0 && owned) {
                         Image(
                             painter = painterResource(id = imageResId),
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize().padding(3.dp).clip(RoundedCornerShape(10.dp)),
                             contentScale = ContentScale.Crop
                         )
                     } else {
