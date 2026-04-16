@@ -92,7 +92,17 @@ fun MonsterPacksNavHost() {
                 )
             }
             composable(Screen.Collection.route) { CollectionScreen() }
-            composable(Screen.Shop.route)       { ShopScreen() }
+            composable(Screen.Shop.route) { 
+                ShopScreen(
+                    onNavigateToPacks = {
+                        navController.navigate(Screen.Pack.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                ) 
+            }
             composable(Screen.Settings.route)   { SettingsScreen() }
         }
     }

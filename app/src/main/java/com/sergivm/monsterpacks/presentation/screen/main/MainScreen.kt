@@ -1,40 +1,48 @@
 package com.sergivm.monsterpacks.presentation.screen.main
 
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.domain.engine.GameEngine
 import com.sergivm.monsterpacks.domain.model.Card
+import com.sergivm.monsterpacks.domain.model.PlayerState
 import com.sergivm.monsterpacks.domain.model.Rarity
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.screen.UsernameSetupScreen
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
+import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
 import com.sergivm.monsterpacks.presentation.viewmodel.MainViewModel
+import kotlinx.coroutines.delay
+import kotlin.random.Random
 
-/**
- * Main "Pack" tab. Handles:
- * - First-launch username setup
- * - Pack display and "Open a Pack" button
- * - Card reveal flow (one card at a time)
- * - Summary screen after all cards revealed
- *
- * The bottom nav bar is hidden externally when [MainUiState.isOpeningPack] is true.
- * The caller (NavGraph) is responsible for hiding/showing the nav bar.
- */
 @Composable
 fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
@@ -43,52 +51,72 @@ fun MainScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // First launch: username setup
+    // Handle initial loading
+    if (state.isLoading) {
+        Box(modifier = Modifier.fillMaxSize().background(BackgroundDark), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+        return
+    }
+
+    // Persistent username logic
     if (state.isFirstLaunch) {
         UsernameSetupScreen(onConfirm = { viewModel.setUsername(it) })
         return
     }
+
+    val playerState = state.playerState ?: return // Safety check
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
     ) {
-        when {
-            state.showSummary -> {
-                SummaryScreen(
-                    cards = state.drawnCards,
-                    playerState = state.playerState,
-                    onSave = {
-                        viewModel.saveSession()
-                        onPackOpeningFinished()
-                    }
-                )
-            }
-
-            state.isOpeningPack -> {
-                state.currentCard?.let { card ->
-                    CardRevealScreen(
-                        card = card,
-                        cardIndex = state.currentCardIndex,
-                        totalCards = state.drawnCards.size,
-                        isNewCard = state.playerState.copiesOf(card.id) == 0,
-                        copyCount = state.playerState.copiesOf(card.id),
-                        playerState = state.playerState,
-                        onTap = { viewModel.revealNextCard() }
+        AnimatedContent(
+            targetState = when {
+                state.showSummary -> 2
+                state.isOpeningPack -> 1
+                else -> 0
+            },
+            transitionSpec = {
+                fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
+            },
+            label = "ScreenTransition"
+        ) { targetIndex ->
+            when (targetIndex) {
+                2 -> {
+                    SummaryScreen(
+                        cards = state.drawnCards,
+                        playerState = playerState,
+                        onSave = {
+                            viewModel.saveSession()
+                            onPackOpeningFinished()
+                        }
                     )
                 }
-            }
-
-            else -> {
-                PackIdleScreen(
-                    playerState = state.playerState,
-                    packName = state.packDefinition.name,
-                    onOpenPack = {
-                        viewModel.openPack()
-                        onPackOpeningStarted()
+                1 -> {
+                    state.currentCard?.let { card ->
+                        CardRevealScreen(
+                            card = card,
+                            cardIndex = state.currentCardIndex,
+                            totalCards = state.drawnCards.size,
+                            isNewCard = playerState.copiesOf(card.id) == 0,
+                            copyCount = playerState.copiesOf(card.id),
+                            playerState = playerState,
+                            onTap = { viewModel.revealNextCard() }
+                        )
                     }
-                )
+                }
+                else -> {
+                    PackIdleScreen(
+                        playerState = playerState,
+                        packName = state.packDefinition.name,
+                        onOpenPack = {
+                            viewModel.openPack()
+                            onPackOpeningStarted()
+                        }
+                    )
+                }
             }
         }
     }
@@ -98,10 +126,21 @@ fun MainScreen(
 
 @Composable
 private fun PackIdleScreen(
-    playerState: com.sergivm.monsterpacks.domain.model.PlayerState,
+    playerState: PlayerState,
     packName: String,
     onOpenPack: () -> Unit
 ) {
+    var currentTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(playerState.availablePacks, playerState.maxPacks) {
+        while (playerState.availablePacks < playerState.maxPacks) {
+            delay(1000)
+            currentTime = System.currentTimeMillis()
+        }
+    }
+
+    val regenInterval = GameEngine.getPackRegenIntervalMs(playerState.basicPackRegenLevel)
+    val remainingRegenMs = playerState.nextPackRegenRemainingMs(currentTime, regenInterval)
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -110,13 +149,33 @@ private fun PackIdleScreen(
 
         Spacer(Modifier.weight(0.1f))
 
-        // Pack visual placeholder
+        PackCounterWithTimer(
+            available = playerState.availablePacks,
+            max = playerState.maxPacks,
+            remainingMs = remainingRegenMs
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        val infiniteTransition = rememberInfiniteTransition(label = "PackFloat")
+        val offsetY by infiniteTransition.animateFloat(
+            initialValue = -10f,
+            targetValue = 10f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(2000, easing = LinearOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "Offset"
+        )
+
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .aspectRatio(0.65f)
+                .graphicsLayer { translationY = offsetY }
                 .clip(RoundedCornerShape(16.dp))
-                .background(SurfaceDark),
+                .background(SurfaceDark)
+                .border(2.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -129,36 +188,79 @@ private fun PackIdleScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "[ Collection cover art ]",
+                    text = "[ Pack Art ]",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
+                    color = Color.Gray
                 )
-                // TODO: Replace with actual pack Image composable once art is ready
             }
         }
 
         Spacer(Modifier.weight(0.15f))
 
+        val canOpen = playerState.availablePacks > 0
         Button(
             onClick = onOpenPack,
+            enabled = canOpen,
             modifier = Modifier
                 .fillMaxWidth(0.6f)
-                .height(52.dp),
-            shape = RoundedCornerShape(26.dp),
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
+                disabledContainerColor = Color.Gray.copy(alpha = 0.3f)
             )
         ) {
             Text(
-                text = "Open a Pack",
+                text = if (canOpen) "Open a Pack" else "Out of Packs",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = Color.Black
+                color = if (canOpen) Color.Black else Color.Gray
             )
         }
 
         Spacer(Modifier.weight(0.1f))
+    }
+}
+
+@Composable
+private fun PackCounterWithTimer(available: Int, max: Int, remainingMs: Long) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            color = SurfaceVariantDark,
+            shape = CircleShape,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("📦", fontSize = 16.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "$available / $max",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (available > 0) Color.White else Color.Red
+                )
+                Text(
+                    text = " PACKS",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+            }
+        }
+        
+        if (available < max && remainingMs > 0) {
+            val totalSeconds = remainingMs / 1000
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            Text(
+                text = "Next in ${minutes}:${seconds.toString().padStart(2, '0')}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -171,51 +273,124 @@ private fun CardRevealScreen(
     totalCards: Int,
     isNewCard: Boolean,
     copyCount: Int,
-    playerState: com.sergivm.monsterpacks.domain.model.PlayerState,
+    playerState: PlayerState,
     onTap: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .clickable { onTap() },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        MonsterPacksTopBar(playerState = playerState)
+    val shakeAnim = remember { Animatable(0f) }
+    val particles = remember { mutableStateListOf<Particle>() }
+    
+    LaunchedEffect(card) {
+        if (card.rarity >= Rarity.LEGENDARY) {
+            repeat(6) {
+                shakeAnim.animateTo(if (it % 2 == 0) 10f else -10f, tween(50))
+            }
+            shakeAnim.animateTo(0f, tween(50))
+        }
+        
+        if (card.rarity >= Rarity.SPECIAL) {
+            repeat(40) {
+                particles.add(Particle(
+                    color = card.rarity.color,
+                    velocity = Offset(Random.nextFloat() * 30f - 15f, Random.nextFloat() * 30f - 15f)
+                ))
+            }
+        }
+    }
 
-        Spacer(Modifier.weight(0.05f))
+    LaunchedEffect(Unit) {
+        while(true) {
+            withFrameMillis { 
+                val toRemove = mutableListOf<Particle>()
+                particles.forEach { 
+                    p -> p.update() 
+                    if (p.alpha <= 0f) toRemove.add(p)
+                }
+                particles.removeAll(toRemove)
+            }
+        }
+    }
 
-        // Card counter hint
-        Text(
-            text = "${cardIndex + 1} / $totalCards",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
-        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            particles.forEach { p ->
+                drawCircle(
+                    color = p.color.copy(alpha = p.alpha),
+                    radius = p.radius,
+                    center = Offset(size.width / 2 + p.pos.x, size.height / 2 + p.pos.y)
+                )
+            }
+        }
 
-        Spacer(Modifier.height(8.dp))
-
-        // Card composable
-        CardView(
-            card = card,
-            isNewCard = isNewCard,
-            copyCount = copyCount,
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.72f)
-                .aspectRatio(0.65f)
-        )
+                .fillMaxSize()
+                .clickable { onTap() }
+                .graphicsLayer { translationX = shakeAnim.value },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+             MonsterPacksTopBar(playerState = playerState)
 
-        Spacer(Modifier.weight(0.1f))
+            Spacer(Modifier.weight(0.05f))
 
-        Text(
-            text = "Tap to continue",
-            style = MaterialTheme.typography.labelSmall,
-            color = Color.Gray
-        )
+            Text(
+                text = "CARD ${cardIndex + 1} / $totalCards",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                letterSpacing = 2.sp
+            )
 
-        Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
+
+            AnimatedContent(
+                targetState = card,
+                transitionSpec = {
+                    val scaleIn = if (targetState.rarity >= Rarity.LEGENDARY) {
+                        scaleIn(initialScale = 1.5f, animationSpec = spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessLow))
+                    } else {
+                        slideInHorizontally { width -> width } + fadeIn()
+                    }
+                    
+                    scaleIn togetherWith (slideOutHorizontally { width -> -width } + fadeOut())
+                },
+                label = "CardSlide"
+            ) { currentCard ->
+                CardView(
+                    card = currentCard,
+                    isNewCard = isNewCard,
+                    copyCount = copyCount,
+                    modifier = Modifier
+                        .fillMaxWidth(0.75f)
+                        .aspectRatio(0.65f)
+                )
+            }
+
+            Spacer(Modifier.weight(0.1f))
+
+            Text(
+                text = "TAP TO CONTINUE",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.4f),
+                letterSpacing = 1.sp
+            )
+
+            Spacer(Modifier.height(32.dp))
+        }
     }
 }
 
-// ── Card View ─────────────────────────────────────────────────────────────────
+private class Particle(
+    val color: Color,
+    var pos: Offset = Offset(0f, 0f),
+    var velocity: Offset,
+    var alpha: Float = 1f,
+    val radius: Float = Random.nextFloat() * 10f + 5f
+) {
+    fun update() {
+        pos += velocity
+        velocity *= 0.96f 
+        alpha -= 0.015f 
+    }
+}
 
 @Composable
 fun CardView(
@@ -224,64 +399,95 @@ fun CardView(
     copyCount: Int,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val imageResId = remember(card.imageRes) {
+        context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "Shimmer")
+    val shimmerX by infiniteTransition.animateFloat(
+        initialValue = -500f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(tween(2000, easing = LinearEasing), RepeatMode.Restart),
+        label = "ShimmerX"
+    )
+
     Box(modifier = modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(16.dp))
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(card.type.color.copy(alpha = 0.8f), card.type.color.copy(alpha = 0.3f))
+                        colors = listOf(card.type.color.copy(alpha = 0.9f), card.type.color.copy(alpha = 0.4f))
                     )
                 )
-                .padding(12.dp),
+                .border(
+                    width = if (card.rarity >= Rarity.SPECIAL) 3.dp else 2.dp,
+                    color = card.rarity.color.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .drawWithContent {
+                    drawContent()
+                    if (card.rarity >= Rarity.SPECIAL) {
+                        val brush = Brush.linearGradient(
+                            colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.3f), Color.Transparent),
+                            start = Offset(shimmerX, shimmerX),
+                            end = Offset(shimmerX + 150f, shimmerX + 150f)
+                        )
+                        drawRect(brush = brush, blendMode = BlendMode.Overlay)
+                    }
+                }
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Card name
             Text(
                 text = card.name,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                textAlign = TextAlign.Center
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Card image placeholder
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black.copy(alpha = 0.4f)),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color.Black.copy(alpha = 0.5f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "[ ${card.imageRes} ]",
-                    color = Color.Gray,
-                    style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center
-                )
-                // TODO: Replace with AsyncImage or painterResource when art is ready
+                if (imageResId != 0) {
+                    Image(
+                        painter = painterResource(id = imageResId),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = "[ Missing Art ]",
+                        color = Color.White.copy(alpha = 0.3f),
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // Description (Common / Rare / Epic only)
             if (card.rarity.hasDescription && card.description != null) {
                 Text(
                     text = card.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = Color.White.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    lineHeight = 18.sp
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
             }
 
-            // Bottom row: card number + rarity icon
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -294,83 +500,92 @@ fun CardView(
                 )
                 Text(
                     text = card.rarity.icon,
-                    fontSize = 18.sp
+                    fontSize = 22.sp
                 )
             }
         }
 
-        // "New!" or copy count badge
         if (isNewCard) {
-            Badge(
-                containerColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+            val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
+            val scale by pulseTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.15f,
+                animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                label = "Scale"
+            )
+
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(4.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .scale(scale)
             ) {
-                Text("NEW!", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                Text(
+                    "NEW!",
+                    color = Color.Black,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
         } else if (copyCount > 1) {
-            Badge(
-                containerColor = SurfaceDark,
-                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+            Surface(
+                color = Color.Black.copy(alpha = 0.6f),
+                shape = CircleShape,
+                modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
             ) {
-                Text("×$copyCount", color = Color.White, fontSize = 11.sp)
+                Text(
+                    "×$copyCount",
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
             }
         }
     }
 }
 
-// ── Summary Screen ────────────────────────────────────────────────────────────
-
 @Composable
 private fun SummaryScreen(
     cards: List<Card>,
-    playerState: com.sergivm.monsterpacks.domain.model.PlayerState,
+    playerState: PlayerState,
     onSave: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundDark)
-            .padding(16.dp),
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Pack Summary",
+            text = "Pack Opened!",
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(32.dp))
 
-        // Mini card row
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            cards.forEach { card ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .aspectRatio(0.65f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(card.type.color.copy(alpha = 0.7f)),
-                    contentAlignment = Alignment.Center
+            cards.forEachIndexed { index, card ->
+                var visible by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    delay(100L * index)
+                    visible = true
+                }
+
+                AnimatedVisibility(
+                    visible = visible,
+                    enter = scaleIn(animationSpec = tween(400)) + fadeIn(),
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
-                        Text(card.rarity.icon, fontSize = 14.sp)
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = card.name,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            textAlign = TextAlign.Center,
-                            maxLines = 2
-                        )
-                        if (!playerState.hasCard(card.id)) {
-                            Text("NEW!", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                    SummaryCardCell(card, !playerState.hasCard(card.id))
                 }
             }
         }
@@ -379,12 +594,62 @@ private fun SummaryScreen(
 
         Button(
             onClick = onSave,
-            modifier = Modifier.fillMaxWidth(0.7f).height(52.dp),
-            shape = RoundedCornerShape(26.dp)
+            modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
+            shape = RoundedCornerShape(28.dp)
         ) {
-            Text("Save", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("DONE", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun SummaryCardCell(card: Card, isNew: Boolean) {
+    val context = LocalContext.current
+    val imageResId = remember(card.imageRes) {
+        context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
+    }
+
+    Box(
+        modifier = Modifier
+            .aspectRatio(0.65f)
+            .clip(RoundedCornerShape(8.dp))
+            .background(card.type.color.copy(alpha = 0.8f))
+            .border(1.dp, card.rarity.color.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        if (imageResId != 0) {
+            Image(
+                painter = painterResource(id = imageResId),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                alpha = 0.4f
+            )
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
+            Text(card.rarity.icon, fontSize = 16.sp)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = card.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                fontSize = 8.sp,
+                lineHeight = 10.sp
+            )
+            if (isNew) {
+                Text(
+                    "NEW",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 8.sp
+                )
+            }
+        }
     }
 }

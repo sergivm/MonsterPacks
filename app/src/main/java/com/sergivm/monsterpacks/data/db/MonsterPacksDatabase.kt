@@ -7,7 +7,7 @@ import com.sergivm.monsterpacks.data.db.entity.PlayerStateEntity
 
 @Database(
     entities = [PlayerStateEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MonsterPacksDatabase : RoomDatabase() {

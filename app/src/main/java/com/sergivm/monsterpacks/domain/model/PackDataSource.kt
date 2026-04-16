@@ -2,21 +2,14 @@ package com.sergivm.monsterpacks.domain.model
 
 /**
  * Static definitions for all pack types in the game.
- * Slot rules implement the probability system defined in the GDD.
- *
- * TODO: Replace coverRes / designRes / backgroundRes strings with actual drawable resource names.
  */
 object PackDataSource {
 
-    // ── Free roll table (used by Slots 4 & 5 of Basic Pack) ──────────────────
-    private val freeRollTable = mapOf(
-        Rarity.COMMON    to 58f,
-        Rarity.RARE      to 35f,
-        Rarity.EPIC      to 5f,
-        Rarity.SPECIAL   to 1f,
-        Rarity.LEGENDARY to 0.1f,
-        Rarity.GOD       to 0.01f
-    )
+    /** 
+     * Default roll table for "free" slots. 
+     * Uses weights from Rarity.kt (God 0.5%, Leg 2.5%, Spec 5%, Epic 15%, Rare 37%, Common 40%).
+     */
+    private val defaultFreeRollTable = Rarity.values().associateWith { it.baseDropWeight }
 
     // ── Basic Pack ────────────────────────────────────────────────────────────
     val basicPack = PackDefinition(
@@ -26,34 +19,34 @@ object PackDataSource {
         collectionId = CardDataSource.COLLECTION_GENESIS,
         slotRules = listOf(
             SlotRule(slot = 1, guaranteedRarity = Rarity.COMMON),
-            SlotRule(slot = 2, guaranteedRarity = Rarity.COMMON),
-            SlotRule(slot = 3, guaranteedRarity = Rarity.RARE),
-            SlotRule(slot = 4, rollTable = freeRollTable),
-            SlotRule(slot = 5, rollTable = freeRollTable)
+            SlotRule(slot = 2, guaranteedRarity = Rarity.RARE),
+            SlotRule(slot = 3, rollTable = defaultFreeRollTable),
+            SlotRule(slot = 4, rollTable = defaultFreeRollTable),
+            SlotRule(slot = 5, rollTable = defaultFreeRollTable)
         ),
         cost = null,
-        coverRes = "collection_genesis_cover",        // TODO: final art
-        designRes = "pack_design_basic",              // TODO: final art
-        backgroundRes = "pack_bg_genesis_basic",      // TODO: final art
+        coverRes = "collection_genesis_cover",
+        designRes = "pack_design_basic",
+        backgroundRes = "pack_bg_genesis_basic",
         xpReward = 10,
         cardCount = 5
     )
 
-    // ── Bonus Pack ────────────────────────────────────────────────────────────
-    val bonusPack = PackDefinition(
-        id = "pack_bonus",
-        name = "Bonus Pack",
+    // ── Free Pack (formerly Bonus Pack) ───────────────────────────────────────
+    val freePack = PackDefinition(
+        id = "pack_free",
+        name = "Free Pack",
         type = PackType.BONUS,
         collectionId = CardDataSource.COLLECTION_GENESIS,
         slotRules = listOf(
-            SlotRule(slot = 1, rollTable = freeRollTable),
-            SlotRule(slot = 2, rollTable = freeRollTable),
-            SlotRule(slot = 3, rollTable = freeRollTable)
+            SlotRule(slot = 1, rollTable = defaultFreeRollTable),
+            SlotRule(slot = 2, rollTable = defaultFreeRollTable),
+            SlotRule(slot = 3, rollTable = defaultFreeRollTable)
         ),
         cost = null,
         coverRes = "collection_genesis_cover",
-        designRes = "pack_design_bonus",
-        backgroundRes = "pack_bg_genesis_bonus",
+        designRes = "pack_design_free",
+        backgroundRes = "pack_bg_genesis_free",
         xpReward = 5,
         cardCount = 3
     )
@@ -68,15 +61,15 @@ object PackDataSource {
             cardTypeFilter = listOf(cardType),
             slotRules = listOf(
                 SlotRule(slot = 1, guaranteedRarity = Rarity.COMMON),
-                SlotRule(slot = 2, guaranteedRarity = Rarity.COMMON),
-                SlotRule(slot = 3, guaranteedRarity = Rarity.RARE),
-                SlotRule(slot = 4, rollTable = freeRollTable),
-                SlotRule(slot = 5, rollTable = freeRollTable)
+                SlotRule(slot = 2, guaranteedRarity = Rarity.RARE),
+                SlotRule(slot = 3, rollTable = defaultFreeRollTable),
+                SlotRule(slot = 4, rollTable = defaultFreeRollTable),
+                SlotRule(slot = 5, rollTable = defaultFreeRollTable)
             ),
             cost = PackCost.Coins(500L),
             coverRes = "collection_genesis_cover",
-            designRes = "pack_design_type_${cardType.name.lowercase()}", // TODO: final art
-            backgroundRes = "pack_bg_${cardType.name.lowercase()}",      // TODO: final art
+            designRes = "pack_design_type_${cardType.name.lowercase()}",
+            backgroundRes = "pack_bg_${cardType.name.lowercase()}",
             xpReward = 20,
             cardCount = 5
         )
@@ -93,11 +86,11 @@ object PackDataSource {
             SlotRule(slot = 2, guaranteedRarity = Rarity.RARE),
             SlotRule(slot = 3, guaranteedRarity = Rarity.RARE),
             SlotRule(slot = 4, rollTable = mapOf(
-                Rarity.COMMON to 38f, Rarity.RARE to 55f, Rarity.EPIC to 6f,
-                Rarity.SPECIAL to 1f, Rarity.LEGENDARY to 0.1f, Rarity.GOD to 0.01f)),
+                Rarity.COMMON to 30f, Rarity.RARE to 60f, Rarity.EPIC to 8f,
+                Rarity.SPECIAL to 1.5f, Rarity.LEGENDARY to 0.4f, Rarity.GOD to 0.1f)),
             SlotRule(slot = 5, rollTable = mapOf(
-                Rarity.COMMON to 38f, Rarity.RARE to 55f, Rarity.EPIC to 6f,
-                Rarity.SPECIAL to 1f, Rarity.LEGENDARY to 0.1f, Rarity.GOD to 0.01f))
+                Rarity.COMMON to 30f, Rarity.RARE to 60f, Rarity.EPIC to 8f,
+                Rarity.SPECIAL to 1.5f, Rarity.LEGENDARY to 0.4f, Rarity.GOD to 0.1f))
         ),
         cost = PackCost.Coins(1_000L),
         coverRes = "collection_genesis_cover",
@@ -117,11 +110,11 @@ object PackDataSource {
             SlotRule(slot = 2, guaranteedRarity = Rarity.RARE),
             SlotRule(slot = 3, guaranteedRarity = Rarity.EPIC),
             SlotRule(slot = 4, rollTable = mapOf(
-                Rarity.COMMON to 33f, Rarity.RARE to 40f, Rarity.EPIC to 20f,
-                Rarity.SPECIAL to 6f, Rarity.LEGENDARY to 0.9f, Rarity.GOD to 0.1f)),
+                Rarity.COMMON to 20f, Rarity.RARE to 40f, Rarity.EPIC to 30f,
+                Rarity.SPECIAL to 8f, Rarity.LEGENDARY to 1.5f, Rarity.GOD to 0.5f)),
             SlotRule(slot = 5, rollTable = mapOf(
-                Rarity.COMMON to 33f, Rarity.RARE to 40f, Rarity.EPIC to 20f,
-                Rarity.SPECIAL to 6f, Rarity.LEGENDARY to 0.9f, Rarity.GOD to 0.1f))
+                Rarity.COMMON to 20f, Rarity.RARE to 40f, Rarity.EPIC to 30f,
+                Rarity.SPECIAL to 8f, Rarity.LEGENDARY to 1.5f, Rarity.GOD to 0.5f))
         ),
         cost = PackCost.Both(coins = 0L, gems = 50L),
         coverRes = "collection_genesis_cover",
@@ -185,7 +178,7 @@ object PackDataSource {
     )
 
     val allPacks: List<PackDefinition> =
-        listOf(basicPack, bonusPack) +
+        listOf(basicPack, freePack) +
         typeThemedPacks +
         listOf(rareBoostedPack, epicBoostedPack, luckyEpicPack, luckySpecialPack, luckyLegendaryPack)
 }

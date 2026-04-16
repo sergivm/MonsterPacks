@@ -20,7 +20,7 @@ enum class Rarity(
         color = Color(0xFF6C757D),
         coinReward = 1,
         gemReward = 0,
-        baseDropWeight = 52f
+        baseDropWeight = 40f
     ),
     RARE(
         displayName = "Rare",
@@ -28,7 +28,7 @@ enum class Rarity(
         color = Color(0xFF2874A6),
         coinReward = 2,
         gemReward = 0,
-        baseDropWeight = 35f
+        baseDropWeight = 37f
     ),
     EPIC(
         displayName = "Epic",
@@ -36,7 +36,7 @@ enum class Rarity(
         color = Color(0xFF7D3C98),
         coinReward = 10,
         gemReward = 0,
-        baseDropWeight = 10f
+        baseDropWeight = 15f
     ),
     SPECIAL(
         displayName = "Special",
@@ -44,7 +44,7 @@ enum class Rarity(
         color = Color(0xFFB7950B),
         coinReward = 100,
         gemReward = 10,
-        baseDropWeight = 2f
+        baseDropWeight = 5f
     ),
     LEGENDARY(
         displayName = "Legendary",
@@ -52,7 +52,7 @@ enum class Rarity(
         color = Color(0xFFC0392B),
         coinReward = 500,
         gemReward = 50,
-        baseDropWeight = 0.5f
+        baseDropWeight = 2.5f
     ),
     GOD(
         displayName = "God",
@@ -60,7 +60,7 @@ enum class Rarity(
         color = Color(0xFF1A5276),
         coinReward = 2000,
         gemReward = 200,
-        baseDropWeight = 0.1f
+        baseDropWeight = 0.5f
     );
 
     /** Returns true for rarities that can have a text description on the card. */

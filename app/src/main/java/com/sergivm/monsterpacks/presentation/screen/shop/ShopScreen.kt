@@ -1,9 +1,13 @@
 package com.sergivm.monsterpacks.presentation.screen.shop
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,95 +19,188 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
 import com.sergivm.monsterpacks.domain.model.UpgradeResult
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
+import com.sergivm.monsterpacks.presentation.screen.main.CardView
 import com.sergivm.monsterpacks.presentation.ui.theme.*
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
 
 @Composable
-fun ShopScreen(viewModel: ShopViewModel = hiltViewModel()) {
-    val state by viewModel.uiState.collectAsState()
+fun ShopScreen(
+    shopViewModel: ShopViewModel = hiltViewModel(),
+    onNavigateToPacks: () -> Unit = {}
+) {
+    val state by shopViewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundDark)
-    ) {
-        MonsterPacksTopBar(playerState = state.playerState)
+    Box(modifier = Modifier.fillMaxSize().background(BackgroundDark)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            MonsterPacksTopBar(playerState = state.playerState)
 
-        // Shop title bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(SurfaceDark)
-                .padding(vertical = 14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "SHOP",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 4.sp
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(SurfaceDark)
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "SHOP",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 4.sp
+                )
+            }
+
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                item {
+                    FreePackRow(
+                        isReady = state.isFreePackReady,
+                        cooldownRemainingMs = state.freePackCooldownRemainingMs,
+                        onClaim = { shopViewModel.claimFreePack() }
+                    )
+                }
+
+                item {
+                    HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        "UPGRADES",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray,
+                        letterSpacing = 2.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                }
+
+                items(state.upgrades, key = { it.id }) { upgrade ->
+                    UpgradeRow(
+                        upgrade = upgrade,
+                        playerLevel = state.playerState.level,
+                        playerCoins = state.playerState.coins,
+                        playerGems = state.playerState.gems,
+                        onPurchase = { shopViewModel.purchaseUpgrade(upgrade) }
+                    )
+                }
+            }
         }
 
-        LazyColumn(
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        // Overlay for Free Pack Opening (Point 2)
+        AnimatedVisibility(
+            visible = state.isOpeningFreePack,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
         ) {
-            // Bonus Pack claim row
-            item {
-                BonusPackRow(
-                    isReady = state.isBonusPackReady,
-                    cooldownRemainingMs = state.bonusPackCooldownRemainingMs,
-                    onClaim = { viewModel.claimBonusPack() }
-                )
-            }
-
-            item {
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
-                Text(
-                    "UPGRADES",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray,
-                    letterSpacing = 2.sp,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
-
-            items(state.upgrades, key = { it.id }) { upgrade ->
-                UpgradeRow(
-                    upgrade = upgrade,
-                    playerLevel = state.playerState.level,
-                    playerCoins = state.playerState.coins,
-                    playerGems = state.playerState.gems,
-                    onPurchase = { viewModel.purchaseUpgrade(upgrade) }
-                )
-            }
+            FreePackRevealView(
+                cards = state.drawnCards,
+                currentIndex = state.currentCardIndex,
+                showSummary = state.showSummary,
+                onNext = { shopViewModel.nextFreeCard() },
+                onFinish = { shopViewModel.finishFreePack() }
+            )
         }
     }
 
-    // Purchase result snackbar
     state.purchaseResult?.let { result ->
-        val message = when (result) {
-            is UpgradeResult.Success          -> "Upgrade purchased!"
-            is UpgradeResult.InsufficientFunds -> "Not enough resources."
-            is UpgradeResult.LevelTooLow       -> "Level too low for this upgrade."
-            is UpgradeResult.AlreadyMaxTier    -> "Already at max tier."
-        }
         LaunchedEffect(result) {
-            // TODO: show snackbar properly via SnackbarHostState
-            viewModel.clearPurchaseResult()
+            shopViewModel.clearPurchaseResult()
         }
     }
 }
 
-// ── Bonus Pack Row ────────────────────────────────────────────────────────────
+// ── Free Pack Opening View ───────────────────────────────────────────────────
 
 @Composable
-private fun BonusPackRow(
+private fun FreePackRevealView(
+    cards: List<Card>,
+    currentIndex: Int,
+    showSummary: Boolean,
+    onNext: () -> Unit,
+    onFinish: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.95f))
+            .clickable(enabled = !showSummary) { onNext() },
+        contentAlignment = Alignment.Center
+    ) {
+        if (!showSummary) {
+            val currentCard = cards.getOrNull(currentIndex)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "FREE PACK REVEAL",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    letterSpacing = 2.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "${currentIndex + 1} / ${cards.size}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
+                Spacer(Modifier.height(24.dp))
+                
+                if (currentCard != null) {
+                    CardView(
+                        card = currentCard,
+                        isNewCard = false,
+                        copyCount = 0,
+                        modifier = Modifier.fillMaxWidth(0.8f).aspectRatio(0.65f)
+                    )
+                }
+                
+                Spacer(Modifier.height(40.dp))
+                Text("Tap to reveal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Pack Summary", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(24.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    cards.forEach { card ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(0.65f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(card.type.color.copy(alpha = 0.2f))
+                                .border(1.dp, card.type.color, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(card.rarity.icon, fontSize = 20.sp)
+                        }
+                    }
+                }
+                
+                Spacer(Modifier.height(48.dp))
+                
+                Button(
+                    onClick = onFinish,
+                    modifier = Modifier.fillMaxWidth(0.7f).height(52.dp),
+                    shape = RoundedCornerShape(26.dp)
+                ) {
+                    Text("CLAIM REWARDS", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+// ── Components ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun FreePackRow(
     isReady: Boolean,
     cooldownRemainingMs: Long,
     onClaim: () -> Unit
@@ -118,15 +215,18 @@ private fun BonusPackRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Bonus Pack", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Free Pack", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (isReady) {
                 Text("Ready to claim!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             } else {
                 val totalSeconds = cooldownRemainingMs / 1000
-                val minutes = totalSeconds / 60
+                val totalMinutes = totalSeconds / 60
+                val minutes = totalMinutes % 60
                 val seconds = totalSeconds % 60
+                
+                val timeText = "${minutes}:${seconds.toString().padStart(2, '0')}"
                 Text(
-                    "Ready in ${minutes}:${seconds.toString().padStart(2, '0')}",
+                    "Ready in $timeText",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -142,8 +242,6 @@ private fun BonusPackRow(
     }
 }
 
-// ── Upgrade Row ───────────────────────────────────────────────────────────────
-
 @Composable
 private fun UpgradeRow(
     upgrade: Upgrade,
@@ -152,8 +250,20 @@ private fun UpgradeRow(
     playerGems: Long,
     onPurchase: () -> Unit
 ) {
-    val locked = playerLevel < upgrade.requiredLevel
-    val alpha = if (locked) 0.4f else 1f
+    val levelLocked = playerLevel < upgrade.requiredLevel
+    
+    val hasEnough = when (val cost = upgrade.cost) {
+        is PackCost.Coins -> playerCoins >= cost.amount
+        is PackCost.Gems  -> playerGems >= cost.amount
+        is PackCost.Both  -> playerCoins >= cost.coins && playerGems >= cost.gems
+    }
+
+    val alpha = if (levelLocked) 0.4f else 1f
+    val buttonColor = if (!levelLocked && !hasEnough) {
+        ButtonDefaults.buttonColors(containerColor = Color(0xFF922B21), contentColor = Color.White)
+    } else {
+        ButtonDefaults.buttonColors()
+    }
 
     Row(
         modifier = Modifier
@@ -164,7 +274,6 @@ private fun UpgradeRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: name + before→after
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 upgrade.name,
@@ -178,30 +287,26 @@ private fun UpgradeRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = alpha)
             )
-            if (locked) {
+            if (levelLocked) {
                 Text(
                     "Requires Level ${upgrade.requiredLevel}",
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
+                    color = Color.Gray,
+                    fontSize = 10.sp
                 )
             }
         }
 
         Spacer(Modifier.width(12.dp))
 
-        // Right: upgrade button with cost
         if (upgrade.isMaxTier) {
-            Text(
-                "MAX",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.ExtraBold
-            )
+            Text("MAX", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.ExtraBold)
         } else {
             Button(
                 onClick = onPurchase,
-                enabled = !locked,
+                enabled = !levelLocked,
                 shape = RoundedCornerShape(8.dp),
+                colors = buttonColor,
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -210,7 +315,8 @@ private fun UpgradeRow(
                     Text(
                         formatCost(upgrade.cost),
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 10.sp
+                        fontSize = 10.sp,
+                        color = if (!levelLocked && !hasEnough) Color.White.copy(alpha = 0.8f) else Color.Unspecified
                     )
                 }
             }
