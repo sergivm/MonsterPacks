@@ -28,9 +28,9 @@ object CardDataSource {
         add(card(id++, 9,  "Cinderclaw Wyvern",        CardType.INFERNAL, Rarity.EPIC,      "Wyvern with talons of molten rock. Leaves rivers of fire wherever it lands."))
         add(card(id++, 10, "Molten Serpent",           CardType.INFERNAL, Rarity.EPIC,      "A massive serpent of pure magma. Older than the volcanoes it inhabits."))
         add(card(id++, 11, "Ember Phoenix",            CardType.INFERNAL, Rarity.EPIC,      "A phoenix reborn endlessly from its own ash. Its tears are liquid fire."))
-        add(card(id++, 12, "Lava Serpent (Special)",   CardType.INFERNAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
-        add(card(id++, 13, "Molten Serpent (Special)", CardType.INFERNAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 10))
-        add(card(id++, 14, "Cinderclaw Wyvern (Leg.)", CardType.INFERNAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 9))
+        add(card(id++, 12, "Lava Serpent",             CardType.INFERNAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
+        add(card(id++, 13, "Molten Serpent",           CardType.INFERNAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 10))
+        add(card(id++, 14, "Cinderclaw Wyvern",        CardType.INFERNAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 9))
         add(card(id++, 15, "Magma Titan",              CardType.INFERNAL, Rarity.GOD,       null, isVariant = false))
 
         // ── ABYSSAL (14 cards) ────────────────────────────────────────────────
@@ -45,8 +45,8 @@ object CardDataSource {
         add(card(id++, 9, "Bioluminescent Jellyfish",         CardType.ABYSSAL, Rarity.RARE,      "A stunning glowing jellyfish inspired by real deep-sea species. Beautiful and lethal."))
         add(card(id++, 10, "Deep Horror",                      CardType.ABYSSAL, Rarity.EPIC,      "A Lovecraftian deep-sea monstrosity. Its shape changes depending on who is watching."))
         add(card(id++, 11, "Leviathan",                        CardType.ABYSSAL, Rarity.EPIC,      "The classic sea serpent of legend. Long enough to encircle a continent."))
-        add(card(id++, 12, "Bioluminescent Jellyfish (Spec.)", CardType.ABYSSAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13, "Deep Horror (Legendary)",          CardType.ABYSSAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 12, "Bioluminescent Jellyfish",         CardType.ABYSSAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13, "Deep Horror",                      CardType.ABYSSAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 14, "The Kraken",                       CardType.ABYSSAL, Rarity.GOD,       null))
 
         // ── SPECTRAL (14 cards) ───────────────────────────────────────────────
@@ -61,8 +61,8 @@ object CardDataSource {
         add(card(id++, 9, "Duskborn Vampire",          CardType.SPECTRAL, Rarity.EPIC,      "A classic vampire, elegant and deadly. Has outlived every civilization it has fed from."))
         add(card(id++, 10, "The Wraith",                CardType.SPECTRAL, Rarity.EPIC,      "An incorporeal dark entity. It passes through all matter. It has no memory of what it was."))
         add(card(id++, 11, "Pale Banshee",              CardType.SPECTRAL, Rarity.EPIC,      "A wailing spirit that foretells death. Its scream is heard three days before the event."))
-        add(card(id++, 12, "Duskborn Vampire (Spec.)",  CardType.SPECTRAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13, "The Wraith (Legendary)",    CardType.SPECTRAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 12, "Duskborn Vampire",          CardType.SPECTRAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13, "The Wraith",                CardType.SPECTRAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 14, "Lich of the Abyss",        CardType.SPECTRAL, Rarity.GOD,       null))
 
         // ── CELESTIAL (15 cards) ──────────────────────────────────────────────
@@ -77,9 +77,9 @@ object CardDataSource {
         add(card(id++, 9, "Lunar Moth",                 CardType.CELESTIAL, Rarity.RARE,      "A giant moth drawn powerfully to lunar energy. Grows larger each full moon."))
         add(card(id++, 10, "Stardust Unicorn",           CardType.CELESTIAL, Rarity.EPIC,      "A unicorn with a horn of condensed starlight. Its blood is liquid aurora."))
         add(card(id++, 11, "Solar Griffin",              CardType.CELESTIAL, Rarity.EPIC,      "A griffin radiating solar energy. Blind to look at directly. Warm to stand near."))
-        add(card(id++, 12, "Lunar Moth (Special)",       CardType.CELESTIAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13, "Stardust Unicorn (Special)", CardType.CELESTIAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 10))
-        add(card(id++, 14, "Solar Griffin (Legendary)",  CardType.CELESTIAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 11))
+        add(card(id++, 12, "Lunar Moth",                 CardType.CELESTIAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13, "Stardust Unicorn",           CardType.CELESTIAL, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 10))
+        add(card(id++, 14, "Solar Griffin",              CardType.CELESTIAL, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 11))
         add(card(id++, 15, "Dawn Phoenix",               CardType.CELESTIAL, Rarity.GOD,       null))
 
         // ── STORM (14 cards) ──────────────────────────────────────────────────
@@ -93,9 +93,9 @@ object CardDataSource {
         add(card(id++, 8, "Cyclone Drake",              CardType.STORM, Rarity.RARE,      "A small drake that spawns miniature cyclones when it exhales."))
         add(card(id++, 9, "Storm Giant",                CardType.STORM, Rarity.EPIC,      "A colossal humanoid born from a supercell storm. Speaks only in thunder."))
         add(card(id++, 10, "Thunderbird",                CardType.STORM, Rarity.EPIC,      "From Native American myth. Creates thunder with every wingbeat. Cannot be calm."))
-        add(card(id++, 11, "Cyclone Drake (Special)",    CardType.STORM, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
-        add(card(id++, 12, "Storm Giant (Special)",      CardType.STORM, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13, "Thunderbird (Legendary)",    CardType.STORM, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 11, "Cyclone Drake",              CardType.STORM, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
+        add(card(id++, 12, "Storm Giant",                CardType.STORM, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13, "Thunderbird",                CardType.STORM, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 14, "Tempest Lynx",               CardType.STORM, Rarity.GOD,       null))
 
         // ── VERDANT (13 cards) ────────────────────────────────────────────────
@@ -109,8 +109,8 @@ object CardDataSource {
         add(card(id++, 8, "Mushroom Golem",             CardType.VERDANT, Rarity.RARE,      "A golem of compressed mycelium. Rebuilds itself from any nearby fungi when damaged."))
         add(card(id++, 9, "Ancient Treant",             CardType.VERDANT, Rarity.EPIC,      "A thousand-year-old tree that has woken up. Its voice is the sound of roots splitting stone."))
         add(card(id++, 10, "Vine Hydra",                 CardType.VERDANT, Rarity.EPIC,      "A hydra of living vines. Each severed head regrows as two new branches by morning."))
-        add(card(id++, 11, "Mushroom Golem (Special)",   CardType.VERDANT, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
-        add(card(id++, 12, "Ancient Treant (Legendary)", CardType.VERDANT, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 9))
+        add(card(id++, 11, "Mushroom Golem",             CardType.VERDANT, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
+        add(card(id++, 12, "Ancient Treant",             CardType.VERDANT, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 9))
         add(card(id++, 13, "Bramble Bear",               CardType.VERDANT, Rarity.GOD,       null))
 
         // ── FROST (14 cards) ──────────────────────────────────────────────────
@@ -124,9 +124,9 @@ object CardDataSource {
         add(card(id++, 8,  "Blizzard Serpent",          CardType.FROST, Rarity.RARE,      "A serpent that travels inside blizzards. Indistinguishable from the storm itself."))
         add(card(id++, 9,  "Ice Sphinx",                CardType.FROST, Rarity.EPIC,      "A sphinx carved from a living glacier. Still. Patient. Unspeakably old. Still alive."))
         add(card(id++, 10,  "Glacier Wyrm",              CardType.FROST, Rarity.EPIC,      "A dragon-like wyrm of pure glacial ice. Its breath locks the sea solid in seconds."))
-        add(card(id++, 11,  "Arctic Kitsune (Special)",  CardType.FROST, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 7))
-        add(card(id++, 12,  "Ice Sphinx (Special)",      CardType.FROST, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13,  "Glacier Wyrm (Legendary)",  CardType.FROST, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 11,  "Arctic Kitsune",            CardType.FROST, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 7))
+        add(card(id++, 12,  "Ice Sphinx",                CardType.FROST, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13,  "Glacier Wyrm",              CardType.FROST, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 14,  "Frost Giant",               CardType.FROST, Rarity.GOD,       null))
 
         // ── ARCANE (14 cards) ─────────────────────────────────────────────────
@@ -140,9 +140,9 @@ object CardDataSource {
         add(card(id++, 8, "Arcane Chimera",            CardType.ARCANE, Rarity.RARE,      "A three-headed magical construct chimera. Each head belongs to a different school of magic."))
         add(card(id++, 9, "Ether Serpent",             CardType.ARCANE, Rarity.EPIC,      "A serpent that exists partly in another dimension. You can see through it. It can see through you."))
         add(card(id++, 10, "Runic Golem",               CardType.ARCANE, Rarity.EPIC,      "A massive golem constructed from stacked arcane runes. Each rune is a binding law."))
-        add(card(id++, 11, "Arcane Chimera (Special)",  CardType.ARCANE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
-        add(card(id++, 12, "Ether Serpent (Special)",   CardType.ARCANE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13, "Runic Golem (Legendary)",   CardType.ARCANE, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 11, "Arcane Chimera",            CardType.ARCANE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 8))
+        add(card(id++, 12, "Ether Serpent",             CardType.ARCANE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13, "Runic Golem",               CardType.ARCANE, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 14, "Construct Prime",           CardType.ARCANE, Rarity.GOD,       null))
 
         // ── SAVAGE (14 cards) ─────────────────────────────────────────────────
@@ -156,9 +156,9 @@ object CardDataSource {
         add(card(id++, 8, "Dire Bear",                 CardType.SAVAGE, Rarity.RARE,      "A bear the size of a small building. Its growl registers as seismic activity."))
         add(card(id++, 9, "Bone Crusher Ape",          CardType.SAVAGE, Rarity.EPIC,      "An ape of pure prehistoric muscle. Its knuckles have cracked stone floors to rubble."))
         add(card(id++, 10, "Primal Raptor",             CardType.SAVAGE, Rarity.EPIC,      "A raptor that survived beyond its own extinction through pure ferocity and spite."))
-        add(card(id++, 11, "Saber-Tooth Tiger (Spec.)", CardType.SAVAGE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 7))
-        add(card(id++, 12, "Bone Crusher Ape (Spec.)",  CardType.SAVAGE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 13, "Primal Raptor (Legendary)", CardType.SAVAGE, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 11, "Saber-Tooth Tiger",         CardType.SAVAGE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 7))
+        add(card(id++, 12, "Bone Crusher Ape",          CardType.SAVAGE, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 13, "Primal Raptor",             CardType.SAVAGE, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 14, "Ironhide Rhino",            CardType.SAVAGE, Rarity.GOD,       null))
 
         // ── MYTHIC (15 cards) ─────────────────────────────────────────────────
@@ -173,9 +173,9 @@ object CardDataSource {
         add(card(id++, 9, "The Minotaur",              CardType.MYTHIC, Rarity.EPIC,      "The labyrinth beast. Half-man, half-bull. Still pacing. Still waiting. Still hungry."))
         add(card(id++, 10, "Chimera",                   CardType.MYTHIC, Rarity.EPIC,      "A lion-goat-serpent, three natures permanently at war inside a single body."))
         add(card(id++, 11, "Cerberus",                  CardType.MYTHIC, Rarity.EPIC,      "Three-headed guardian of the underworld. Has never once let anyone leave."))
-        add(card(id++, 12, "Medusa (Special)",          CardType.MYTHIC, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 7))
-        add(card(id++, 13, "The Minotaur (Special)",    CardType.MYTHIC, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
-        add(card(id++, 14, "Chimera (Legendary)",       CardType.MYTHIC, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
+        add(card(id++, 12, "Medusa",                    CardType.MYTHIC, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 7))
+        add(card(id++, 13, "The Minotaur",              CardType.MYTHIC, Rarity.SPECIAL,   null, isVariant = true, baseCardId = 9))
+        add(card(id++, 14, "Chimera",                   CardType.MYTHIC, Rarity.LEGENDARY, null, isVariant = true, baseCardId = 10))
         add(card(id++, 15, "Hydra",                     CardType.MYTHIC, Rarity.GOD,       null))
     }
 
