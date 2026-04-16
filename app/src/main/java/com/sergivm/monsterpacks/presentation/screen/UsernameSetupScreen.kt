@@ -8,10 +8,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 
 /**
@@ -31,7 +33,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "MONSTER PACKS",
+            text = stringResource(R.string.username_setup_main_title),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary,
@@ -41,7 +43,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Choose your collector name",
+            text = stringResource(R.string.username_setup_subtitle),
             style = MaterialTheme.typography.titleMedium,
             color = Color.Gray,
             textAlign = TextAlign.Center
@@ -52,7 +54,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
         OutlinedTextField(
             value = text,
             onValueChange = { if (it.length <= 20) text = it },
-            label = { Text("Collector Name") },
+            label = { Text(stringResource(R.string.username_collector_name)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
@@ -64,7 +66,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "${text.length}/20  •  You can change this once later in Settings",
+            text = stringResource(R.string.username_length_hint, text.length),
             style = MaterialTheme.typography.labelSmall,
             color = Color.Gray
         )
@@ -77,7 +79,7 @@ fun UsernameSetupScreen(onConfirm: (String) -> Unit) {
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(26.dp)
         ) {
-            Text("Start Collecting", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(stringResource(R.string.username_start), fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }

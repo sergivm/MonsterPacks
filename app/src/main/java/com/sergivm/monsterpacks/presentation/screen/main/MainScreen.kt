@@ -25,11 +25,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.engine.GameEngine
 import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PlayerState
@@ -218,7 +220,7 @@ private fun PackIdleScreen(
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Open a Pack", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
+                Text(stringResource(R.string.open_pack), fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.Black)
             }
 
             if (playerState.isBulkOpenUnlocked) {
@@ -231,7 +233,7 @@ private fun PackIdleScreen(
                     shape = RoundedCornerShape(25.dp),
                     border = borderStroke(2.dp, if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray.copy(alpha = 0.3f))
                 ) {
-                    Text("Bulk Open x5", fontWeight = FontWeight.Bold, color = if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray)
+                    Text(stringResource(R.string.bulk_open_x5), fontWeight = FontWeight.Bold, color = if (canBulk) MaterialTheme.colorScheme.primary else Color.Gray)
                 }
             }
         }
@@ -261,7 +263,7 @@ private fun PackCounterWithTimer(available: Int, max: Int, remainingMs: Long) {
                     color = if (available > 0) Color.White else Color.Red
                 )
                 Text(
-                    text = " PACKS",
+                    text = " " + stringResource(R.string.packs_label),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
@@ -272,8 +274,9 @@ private fun PackCounterWithTimer(available: Int, max: Int, remainingMs: Long) {
             val totalSeconds = remainingMs / 1000
             val minutes = totalSeconds / 60
             val seconds = totalSeconds % 60
+            val timeString = "${minutes}:${seconds.toString().padStart(2, '0')}"
             Text(
-                text = "Next in ${minutes}:${seconds.toString().padStart(2, '0')}",
+                text = stringResource(R.string.next_in, timeString),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
@@ -351,7 +354,7 @@ private fun CardRevealScreen(
             Spacer(Modifier.weight(0.05f))
 
             Text(
-                text = "CARD ${cardIndex + 1} / $totalCards",
+                text = stringResource(R.string.card_reveal_progress, cardIndex + 1, totalCards),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.Gray,
                 letterSpacing = 2.sp
@@ -385,7 +388,7 @@ private fun CardRevealScreen(
             Spacer(Modifier.weight(0.1f))
 
             Text(
-                text = "TAP TO CONTINUE",
+                text = stringResource(R.string.tap_to_continue),
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.4f),
                 letterSpacing = 1.sp
@@ -486,7 +489,7 @@ fun CardView(
                     )
                 } else {
                     Text(
-                        text = "[ Missing Art ]",
+                        text = stringResource(R.string.missing_art),
                         color = Color.White.copy(alpha = 0.3f),
                         style = MaterialTheme.typography.labelMedium
                     )
@@ -541,7 +544,7 @@ fun CardView(
                     .scale(scale)
             ) {
                 Text(
-                    "NEW!",
+                    stringResource(R.string.new_card),
                     color = Color.Black,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 12.sp,
@@ -585,7 +588,7 @@ private fun SummaryScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Pack Opened!",
+            text = stringResource(R.string.pack_opened),
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary
@@ -648,7 +651,7 @@ private fun SummaryScreen(
             modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
             shape = RoundedCornerShape(28.dp)
         ) {
-            Text("DONE", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            Text(stringResource(R.string.done), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
         Spacer(Modifier.height(32.dp))
@@ -702,7 +705,7 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
                 Text(card.rarity.icon, fontSize = 16.sp)
                 if (isNew) {
                     Text(
-                        "NEW",
+                        stringResource(R.string.new_card).replace("!", ""),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.ExtraBold,

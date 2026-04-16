@@ -17,11 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.CardType
 import com.sergivm.monsterpacks.domain.model.Rarity
@@ -115,19 +117,19 @@ private fun FilterSheetContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Filters", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            TextButton(onClick = onClear) { Text("Clear All") }
+            Text(stringResource(R.string.collection_filters), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            TextButton(onClick = onClear) { Text(stringResource(R.string.collection_clear_all)) }
         }
 
         Spacer(Modifier.height(16.dp))
 
-        Text("RARITY", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text(stringResource(R.string.collection_rarity), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         Spacer(Modifier.height(8.dp))
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Rarity.values().forEach { rarity ->
+            Rarity.entries.forEach { rarity ->
                 FilterChip(
                     text = rarity.displayName,
                     icon = rarity.icon,
@@ -140,13 +142,13 @@ private fun FilterSheetContent(
 
         Spacer(Modifier.height(24.dp))
 
-        Text("TYPE", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+        Text(stringResource(R.string.collection_type), style = MaterialTheme.typography.labelSmall, color = Color.Gray)
         Spacer(Modifier.height(8.dp))
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            CardType.values().forEach { type ->
+            CardType.entries.forEach { type ->
                 FilterChip(
                     text = type.displayName,
                     icon = null,
@@ -227,7 +229,7 @@ private fun CollectionHeader(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Rarity.values().forEach { rarity ->
+            Rarity.entries.forEach { rarity ->
                 val (owned, total) = progressByRarity[rarity] ?: (0 to 0)
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(rarity.icon, fontSize = 14.sp)
@@ -353,7 +355,7 @@ private fun CardDetailDialog(
                         )
                     } else {
                         Text(
-                            text = if (owned) "[ Missing Art ]" else "[ Locked ]",
+                            text = if (owned) stringResource(R.string.missing_art) else stringResource(R.string.locked),
                             color = Color.White.copy(alpha = 0.2f),
                             style = MaterialTheme.typography.labelMedium
                         )
@@ -361,25 +363,25 @@ private fun CardDetailDialog(
                 }
 
                 Spacer(Modifier.height(8.dp))
-                Text("Type: ${card.type.displayName}", style = MaterialTheme.typography.bodyMedium, color = card.type.color)
-                Text("Rarity: ${card.rarity.displayName}", style = MaterialTheme.typography.bodyMedium, color = card.rarity.color)
+                Text(stringResource(R.string.collection_type_label, card.type.displayName), style = MaterialTheme.typography.bodyMedium, color = card.type.color)
+                Text(stringResource(R.string.collection_rarity_label, card.rarity.displayName), style = MaterialTheme.typography.bodyMedium, color = card.rarity.color)
                 Text("#${card.collectionNumber.toString().padStart(3,'0')}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
 
                 if (owned) {
                     Spacer(Modifier.height(4.dp))
-                    Text("Copies owned: $copyCount", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                    Text(stringResource(R.string.collection_copies_owned, copyCount), style = MaterialTheme.typography.bodyMedium, color = Color.White)
                     card.description?.let {
                         Spacer(Modifier.height(4.dp))
                         Text(it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.8f))
                     }
                 } else {
                     Spacer(Modifier.height(4.dp))
-                    Text("Not yet discovered", style = MaterialTheme.typography.bodyMedium, color = Color.Gray, fontWeight = FontWeight.Light)
+                    Text(stringResource(R.string.collection_not_discovered), style = MaterialTheme.typography.bodyMedium, color = Color.Gray, fontWeight = FontWeight.Light)
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Close") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.collection_close)) }
         }
     )
 }

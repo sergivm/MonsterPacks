@@ -7,28 +7,69 @@
     <string name="tab_settings">Ajustes</string>
 
     <string name="open_pack">Abrir un Sobre</string>
+    <string name="bulk_open_x5">Apertura masiva x5</string>
     <string name="save">Guardar</string>
+    <string name="done">LISTO</string>
     <string name="pack_summary">Resumen del Sobre</string>
-    <string name="tap_to_continue">Toca para continuar</string>
+    <string name="pack_opened">¡Sobre Abierto!</string>
+    <string name="tap_to_continue">TOCA PARA CONTINUAR</string>
     <string name="new_card">¡NUEVA!</string>
+    <string name="packs_label">SOBRES</string>
+    <string name="next_in">Siguiente en %1$s</string>
+    <string name="card_reveal_progress">CARTA %1$d / %2$d</string>
+    <string name="missing_art">[ Arte Faltante ]</string>
+    <string name="locked">[ Bloqueado ]</string>
 
     <string name="username_setup_title">Elige tu nombre de entrenador</string>
+    <string name="username_collector_name">Nombre de Coleccionista</string>
     <string name="username_hint">Nombre de usuario</string>
     <string name="username_start">Empezar a Coleccionar</string>
     <string name="username_note">Puedes cambiarlo una vez más tarde en Ajustes</string>
+    <string name="username_setup_main_title">MONSTER PACKS</string>
+    <string name="username_setup_subtitle">Elige tu nombre de coleccionista</string>
+    <string name="username_length_hint">%1$d/20  •  Puedes cambiarlo una vez más tarde en Ajustes</string>
 
+    <string name="settings_title">AJUSTES</string>
     <string name="settings_language">Idioma</string>
     <string name="settings_google_play">Google Play</string>
     <string name="settings_account">Cuenta</string>
     <string name="settings_terms">Términos de Uso</string>
     <string name="settings_privacy">Aviso de Privacidad</string>
+    <string name="settings_change_username">Cambiar Nombre de Usuario</string>
+    <string name="settings_username_already_changed">Tu nombre de usuario ya ha sido cambiado una vez y no puede volver a cambiarse.</string>
+    <string name="settings_username_change_one_time">Puedes cambiar tu nombre de usuario una sola vez.</string>
+    <string name="settings_new_username">Nuevo nombre de usuario</string>
+    <string name="settings_confirm">Confirmar</string>
+    <string name="settings_cancel">Cancelar</string>
 
+    <string name="shop_title">TIENDA</string>
+    <string name="shop_free_pack">Sobre Gratis</string>
+    <string name="shop_ready_to_claim">¡Listo para reclamar!</string>
+    <string name="shop_ready_in">Listo en %1$s</string>
     <string name="shop_bonus_pack">Sobre Bonus</string>
     <string name="shop_claim">¡Reclamar!</string>
+    <string name="shop_wait">Esperar</string>
     <string name="shop_upgrades">MEJORAS</string>
     <string name="shop_upgrade_button">MEJORAR</string>
     <string name="shop_max">MÁX</string>
     <string name="shop_level_required">Requiere Nivel %1$d</string>
+    <string name="shop_free_pack_reveal">REVELACIÓN SOBRE GRATIS</string>
+    <string name="shop_tap_to_reveal">Toca para revelar</string>
+    <string name="shop_claim_rewards">RECLAMAR RECOMPENSAS</string>
+
+    <string name="collection_title">COLECCIÓN</string>
+    <string name="collection_filters">Filtros</string>
+    <string name="collection_clear_all">Borrar Todo</string>
+    <string name="collection_rarity">RAREZA</string>
+    <string name="collection_type">TIPO</string>
+    <string name="collection_type_label">Tipo: %1$s</string>
+    <string name="collection_rarity_label">Rareza: %1$s</string>
+    <string name="collection_copies_owned">Copias en posesión: %1$d</string>
+    <string name="collection_not_discovered">No descubierto aún</string>
+    <string name="collection_close">Cerrar</string>
+
+    <string name="topbar_level">Nivel %1$d</string>
+    <string name="topbar_max">MÁX</string>
 
     <string name="not_enough_resources">Recursos insuficientes.</string>
     <string name="level_too_low">Nivel demasiado bajo para esta mejora.</string>

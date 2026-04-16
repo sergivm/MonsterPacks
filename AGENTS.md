@@ -16,6 +16,8 @@ This project uses a DDD architecture. Choose the appropriate agent for your task
 - Maintain consistency with `themes.xml` and Compose `Theme.kt`.
 - Prefer `StateFlow` for UI state observation.
 - Design for various screen sizes (Mobile first).
+- **MANDATORY:** Never use hardcoded strings in UI. Use `stringResource(R.string.key)`.
+- **MANDATORY:** Every new string must be added to both `values/strings.xml` (EN) and `values-es/strings.xml` (ES).
 
 ## ⚙️ Game Engine Specialist
 **Focus:** `GameEngine.kt`, Math logic, Rarity systems, and Pack opening mechanics.

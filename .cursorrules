@@ -21,3 +21,10 @@
 - **Immutability:** Always use `data class` with `val`. Never use `var` in domain models.
 - **Cards:** Never mutate a `Card` object. Mutate the `PlayerState` or `Collection` instead.
 - **Resource Management:** Currencies (Coins/Gems) should always be handled via the `GameEngine`.
+
+## 🌐 Localization & Strings
+- **NO HARDCODED STRINGS:** All user-facing text must be defined in `strings.xml` files.
+- **MULTI-LANGUAGE REQUIREMENT:** Every new string entry must be added to:
+  - `app/src/main/res/values/strings.xml` (English - Primary)
+  - `app/src/main/res/values-es/strings.xml` (Spanish)
+- **COMPOSE USAGE:** Use `stringResource(R.string.key)` or `context.getString(R.string.key)` in all UI components.

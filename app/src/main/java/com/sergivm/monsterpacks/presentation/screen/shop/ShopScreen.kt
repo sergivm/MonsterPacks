@@ -15,11 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
@@ -49,7 +51,7 @@ fun ShopScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "SHOP",
+                    text = stringResource(R.string.shop_title),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 4.sp
@@ -71,7 +73,7 @@ fun ShopScreen(
                 item {
                     HorizontalDivider(color = Color.White.copy(alpha = 0.08f), modifier = Modifier.padding(vertical = 4.dp))
                     Text(
-                        "UPGRADES",
+                        stringResource(R.string.shop_upgrades),
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray,
                         letterSpacing = 2.sp,
@@ -137,7 +139,7 @@ private fun FreePackRevealView(
             val currentCard = cards.getOrNull(currentIndex)
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "FREE PACK REVEAL",
+                    stringResource(R.string.shop_free_pack_reveal),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
                     letterSpacing = 2.sp
@@ -160,7 +162,7 @@ private fun FreePackRevealView(
                 }
                 
                 Spacer(Modifier.height(40.dp))
-                Text("Tap to reveal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Text(stringResource(R.string.shop_tap_to_reveal), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         } else {
             val totalCoins = cards.sumOf { it.coinReward }
@@ -171,7 +173,7 @@ private fun FreePackRevealView(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Pack Summary", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.pack_summary), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                 
                 Spacer(Modifier.height(16.dp))
 
@@ -205,7 +207,7 @@ private fun FreePackRevealView(
                     modifier = Modifier.fillMaxWidth(0.7f).height(52.dp),
                     shape = RoundedCornerShape(26.dp)
                 ) {
-                    Text("CLAIM REWARDS", fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.shop_claim_rewards), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -243,9 +245,9 @@ private fun FreePackRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text("Free Pack", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.shop_free_pack), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             if (isReady) {
-                Text("Ready to claim!", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.shop_ready_to_claim), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             } else {
                 val totalSeconds = cooldownRemainingMs / 1000
                 val totalMinutes = totalSeconds / 60
@@ -254,7 +256,7 @@ private fun FreePackRow(
                 
                 val timeText = "${minutes}:${seconds.toString().padStart(2, '0')}"
                 Text(
-                    "Ready in $timeText",
+                    stringResource(R.string.shop_ready_in, timeText),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -265,7 +267,7 @@ private fun FreePackRow(
             enabled = isReady,
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(if (isReady) "Claim!" else "Wait", fontWeight = FontWeight.Bold)
+            Text(if (isReady) stringResource(R.string.shop_claim) else stringResource(R.string.shop_wait), fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -317,7 +319,7 @@ private fun UpgradeRow(
             )
             if (levelLocked) {
                 Text(
-                    "Requires Level ${upgrade.requiredLevel}",
+                    stringResource(R.string.shop_level_required, upgrade.requiredLevel),
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray,
                     fontSize = 10.sp
@@ -334,7 +336,7 @@ private fun UpgradeRow(
         ) {
             if (upgrade.isMaxTier) {
                 Text(
-                    "MAX",
+                    stringResource(R.string.shop_max),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.ExtraBold,
@@ -350,7 +352,7 @@ private fun UpgradeRow(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("UPGRADE", fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                        Text(stringResource(R.string.shop_upgrade_button), fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                         Spacer(Modifier.height(2.dp))
                         Text(
                             formatCost(upgrade.cost),

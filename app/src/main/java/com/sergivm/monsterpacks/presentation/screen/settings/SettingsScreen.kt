@@ -12,10 +12,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
@@ -41,7 +43,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "SETTINGS",
+                stringResource(R.string.settings_title),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 4.sp
@@ -54,19 +56,19 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            SettingsRow(icon = "🌐", label = "Language") { showLanguageDialog = true }
-            SettingsRow(icon = "▶", label = "Google Play") {
+            SettingsRow(icon = "🌐", label = stringResource(R.string.settings_language)) { showLanguageDialog = true }
+            SettingsRow(icon = "▶", label = stringResource(R.string.settings_google_play)) {
                 // TODO: trigger Google Play Games sign-in
             }
             SettingsRow(
                 icon = "👤",
-                label = "Account",
+                label = stringResource(R.string.settings_account),
                 sublabel = state.playerState.username
             ) { showUsernameDialog = true }
-            SettingsRow(icon = "ℹ", label = "Terms of Use") {
+            SettingsRow(icon = "ℹ", label = stringResource(R.string.settings_terms)) {
                 // TODO: open Terms of Use URL or in-app screen
             }
-            SettingsRow(icon = "🔒", label = "Privacy Notice") {
+            SettingsRow(icon = "🔒", label = stringResource(R.string.settings_privacy)) {
                 // TODO: open Privacy Notice URL or in-app screen
             }
         }
@@ -90,7 +92,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
             containerColor = SurfaceDark,
-            title = { Text("Language") },
+            title = { Text(stringResource(R.string.settings_language)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     // TODO: Wire to actual locale switching logic
@@ -99,7 +101,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showLanguageDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showLanguageDialog = false }) { Text(stringResource(R.string.settings_cancel)) }
             }
         )
     }
@@ -152,18 +154,18 @@ private fun UsernameChangeDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = SurfaceDark,
-        title = { Text("Change Username") },
+        title = { Text(stringResource(R.string.settings_change_username)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (alreadyChanged) {
                     Text(
-                        "Your username has already been changed once and cannot be changed again.",
+                        stringResource(R.string.settings_username_already_changed),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
                 } else {
                     Text(
-                        "You can change your username one time only.",
+                        stringResource(R.string.settings_username_change_one_time),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
@@ -171,7 +173,7 @@ private fun UsernameChangeDialog(
                     OutlinedTextField(
                         value = text,
                         onValueChange = { if (it.length <= 20) text = it },
-                        label = { Text("New username") },
+                        label = { Text(stringResource(R.string.settings_new_username)) },
                         singleLine = true,
                         enabled = !alreadyChanged
                     )
@@ -183,11 +185,11 @@ private fun UsernameChangeDialog(
                 Button(
                     onClick = { if (isValid) onConfirm(text.trim()) },
                     enabled = isValid
-                ) { Text("Confirm") }
+                ) { Text(stringResource(R.string.settings_confirm)) }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_cancel)) }
         }
     )
 }
