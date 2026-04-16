@@ -51,7 +51,6 @@ fun MainScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Handle initial loading
     if (state.isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(BackgroundDark), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -59,13 +58,12 @@ fun MainScreen(
         return
     }
 
-    // Persistent username logic
     if (state.isFirstLaunch) {
         UsernameSetupScreen(onConfirm = { viewModel.setUsername(it) })
         return
     }
 
-    val playerState = state.playerState ?: return // Safety check
+    val playerState = state.playerState ?: return
 
     Box(
         modifier = Modifier
@@ -547,12 +545,17 @@ fun CardView(
     }
 }
 
+// ── Summary Screen ────────────────────────────────────────────────────────────
+
 @Composable
 private fun SummaryScreen(
     cards: List<Card>,
     playerState: PlayerState,
     onSave: () -> Unit
 ) {
+    val totalCoins = cards.sumOf { it.coinReward }
+    val totalGems = cards.sumOf { it.gemReward }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -566,6 +569,20 @@ private fun SummaryScreen(
             fontWeight = FontWeight.ExtraBold,
             color = MaterialTheme.colorScheme.primary
         )
+
+        Spacer(Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(SurfaceVariantDark)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RewardItem(icon = "🪙", amount = totalCoins)
+            RewardItem(icon = "💎", amount = totalGems)
+        }
 
         Spacer(Modifier.height(32.dp))
 
@@ -605,7 +622,20 @@ private fun SummaryScreen(
 }
 
 @Composable
-private fun SummaryCardCell(card: Card, isNew: Boolean) {
+fun RewardItem(icon: String, amount: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(icon, fontSize = 18.sp)
+        Text(
+            text = "+$amount",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+    }
+}
+
+@Composable
+fun SummaryCardCell(card: Card, isNew: Boolean) {
     val context = LocalContext.current
     val imageResId = remember(card.imageRes) {
         context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
@@ -624,31 +654,27 @@ private fun SummaryCardCell(card: Card, isNew: Boolean) {
                 painter = painterResource(id = imageResId),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                alpha = 0.4f
+                contentScale = ContentScale.Crop
             )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
-            Text(card.rarity.icon, fontSize = 16.sp)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = card.name,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                fontSize = 8.sp,
-                lineHeight = 10.sp
-            )
-            if (isNew) {
-                Text(
-                    "NEW",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 8.sp
-                )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)))),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
+                Text(card.rarity.icon, fontSize = 16.sp)
+                if (isNew) {
+                    Text(
+                        "NEW",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 8.sp
+                    )
+                }
             }
         }
     }

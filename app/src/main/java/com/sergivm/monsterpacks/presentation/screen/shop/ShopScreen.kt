@@ -25,6 +25,7 @@ import com.sergivm.monsterpacks.domain.model.Upgrade
 import com.sergivm.monsterpacks.domain.model.UpgradeResult
 import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
 import com.sergivm.monsterpacks.presentation.screen.main.CardView
+import com.sergivm.monsterpacks.presentation.screen.main.SummaryCardCell
 import com.sergivm.monsterpacks.presentation.ui.theme.*
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
 
@@ -89,7 +90,7 @@ fun ShopScreen(
             }
         }
 
-        // Overlay for Free Pack Opening (Point 2)
+        // Overlay for Free Pack Opening
         AnimatedVisibility(
             visible = state.isOpeningFreePack,
             enter = fadeIn() + expandVertically(),
@@ -99,6 +100,7 @@ fun ShopScreen(
                 cards = state.drawnCards,
                 currentIndex = state.currentCardIndex,
                 showSummary = state.showSummary,
+                playerState = state.playerState,
                 onNext = { shopViewModel.nextFreeCard() },
                 onFinish = { shopViewModel.finishFreePack() }
             )
@@ -119,6 +121,7 @@ private fun FreePackRevealView(
     cards: List<Card>,
     currentIndex: Int,
     showSummary: Boolean,
+    playerState: com.sergivm.monsterpacks.domain.model.PlayerState,
     onNext: () -> Unit,
     onFinish: () -> Unit
 ) {
@@ -149,8 +152,8 @@ private fun FreePackRevealView(
                 if (currentCard != null) {
                     CardView(
                         card = currentCard,
-                        isNewCard = false,
-                        copyCount = 0,
+                        isNewCard = !playerState.hasCard(currentCard.id),
+                        copyCount = playerState.copiesOf(currentCard.id),
                         modifier = Modifier.fillMaxWidth(0.8f).aspectRatio(0.65f)
                     )
                 }
@@ -159,26 +162,37 @@ private fun FreePackRevealView(
                 Text("Tap to reveal", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         } else {
+            val totalCoins = cards.sumOf { it.coinReward }
+            val totalGems = cards.sumOf { it.gemReward } + (5 + playerState.freePackGemYieldLevel * 2)
+
             Column(
                 modifier = Modifier.fillMaxSize().padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text("Pack Summary", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(24.dp))
+                
+                Spacer(Modifier.height(16.dp))
+
+                // Rewards Row
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(SurfaceVariantDark)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RewardItem(icon = "🪙", amount = totalCoins)
+                    RewardItem(icon = "💎", amount = totalGems.toInt())
+                }
+
+                Spacer(Modifier.height(32.dp))
                 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     cards.forEach { card ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(0.65f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(card.type.color.copy(alpha = 0.2f))
-                                .border(1.dp, card.type.color, RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(card.rarity.icon, fontSize = 20.sp)
+                        Box(modifier = Modifier.weight(1f)) {
+                            SummaryCardCell(card = card, isNew = !playerState.hasCard(card.id))
                         }
                     }
                 }
@@ -194,6 +208,19 @@ private fun FreePackRevealView(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RewardItem(icon: String, amount: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(icon, fontSize = 18.sp)
+        Text(
+            text = "+$amount",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
 
