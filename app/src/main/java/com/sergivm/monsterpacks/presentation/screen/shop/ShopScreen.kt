@@ -1,33 +1,49 @@
 package com.sergivm.monsterpacks.presentation.screen.shop
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.R
-import com.sergivm.monsterpacks.domain.model.Card
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
-import com.sergivm.monsterpacks.domain.model.UpgradeResult
-import com.sergivm.monsterpacks.presentation.screen.*
-import com.sergivm.monsterpacks.presentation.ui.theme.*
+import com.sergivm.monsterpacks.presentation.screen.CardRevealAnimationContainer
+import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
+import com.sergivm.monsterpacks.presentation.screen.SummaryScreen
+import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
+import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
 
 @Composable
@@ -119,7 +135,7 @@ fun ShopScreen(
 
 @Composable
 private fun FreePackRevealView(
-    cards: List<Card>,
+    cards: List<com.sergivm.monsterpacks.domain.model.Card>,
     currentIndex: Int,
     showSummary: Boolean,
     playerState: com.sergivm.monsterpacks.domain.model.PlayerState,
@@ -138,48 +154,19 @@ private fun FreePackRevealView(
                     card = currentCard,
                     isNewCard = !playerState.hasCard(currentCard.id),
                     copyCount = playerState.copiesOf(currentCard.id),
-                    header = {
-                        // Removed the title as requested
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "${currentIndex + 1} / ${cards.size}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.Gray
-                        )
-                    },
-                    footer = {
-                        Text(
-                            stringResource(R.string.shop_tap_to_reveal),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-                    },
+                    cardIndex = currentIndex,
+                    totalCards = cards.size,
                     onTap = onNext
                 )
             }
         } else {
-            // Use the shared SummaryScreen component for consistency
             SummaryScreen(
                 cards = cards,
                 playerState = playerState,
                 title = stringResource(R.string.pack_summary),
-                actionLabel = stringResource(R.string.shop_claim_rewards),
                 onSave = onFinish
             )
         }
-    }
-}
-
-@Composable
-private fun RewardItem(icon: String, amount: Int) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(icon, fontSize = 18.sp)
-        Text(
-            text = "+$amount",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
     }
 }
 
@@ -194,8 +181,6 @@ private fun FreePackRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(SurfaceVariantDark)
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -206,10 +191,8 @@ private fun FreePackRow(
                 Text(stringResource(R.string.shop_ready_to_claim), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
             } else {
                 val totalSeconds = cooldownRemainingMs / 1000
-                val totalMinutes = totalSeconds / 60
-                val minutes = totalMinutes % 60
+                val minutes = (totalSeconds / 60) % 60
                 val seconds = totalSeconds % 60
-                
                 val timeText = "${minutes}:${seconds.toString().padStart(2, '0')}"
                 Text(
                     stringResource(R.string.shop_ready_in, timeText),
@@ -220,8 +203,7 @@ private fun FreePackRow(
         }
         Button(
             onClick = onClaim,
-            enabled = isReady,
-            shape = RoundedCornerShape(8.dp)
+            enabled = isReady
         ) {
             Text(if (isReady) stringResource(R.string.shop_claim) else stringResource(R.string.shop_wait), fontWeight = FontWeight.Bold)
         }
@@ -254,8 +236,6 @@ private fun UpgradeRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(SurfaceVariantDark)
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -285,7 +265,6 @@ private fun UpgradeRow(
 
         Spacer(Modifier.width(12.dp))
 
-        // Fixed alignment and MAX logic (Point 1 & 2)
         Box(
             modifier = Modifier.width(90.dp),
             contentAlignment = Alignment.Center
@@ -295,26 +274,20 @@ private fun UpgradeRow(
                     stringResource(R.string.shop_max),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center
+                    fontWeight = FontWeight.ExtraBold
                 )
             } else {
                 Button(
                     onClick = onPurchase,
                     enabled = !levelLocked,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = buttonColor,
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    colors = buttonColor
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.shop_upgrade_button), fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
-                        Spacer(Modifier.height(2.dp))
                         Text(
                             formatCost(upgrade.cost),
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 9.sp,
-                            color = if (!levelLocked && !hasEnough) Color.White.copy(alpha = 0.8f) else Color.Unspecified
+                            fontSize = 9.sp
                         )
                     }
                 }

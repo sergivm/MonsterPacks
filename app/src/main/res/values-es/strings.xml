@@ -53,9 +53,6 @@
     <string name="shop_upgrade_button">MEJORAR</string>
     <string name="shop_max">MÁX</string>
     <string name="shop_level_required">Requiere Nivel %1$d</string>
-    <string name="shop_free_pack_reveal">REVELACIÓN SOBRE GRATIS</string>
-    <string name="shop_tap_to_reveal">Toca para revelar</string>
-    <string name="shop_claim_rewards">RECLAMAR RECOMPENSAS</string>
 
     <string name="collection_title">COLECCIÓN</string>
     <string name="collection_filters">Filtros</string>

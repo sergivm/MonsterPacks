@@ -53,9 +53,6 @@
     <string name="shop_upgrade_button">UPGRADE</string>
     <string name="shop_max">MAX</string>
     <string name="shop_level_required">Requires Level %1$d</string>
-    <string name="shop_free_pack_reveal">FREE PACK REVEAL</string>
-    <string name="shop_tap_to_reveal">Tap to reveal</string>
-    <string name="shop_claim_rewards">CLAIM REWARDS</string>
 
     <string name="collection_title">COLLECTION</string>
     <string name="collection_filters">Filters</string>

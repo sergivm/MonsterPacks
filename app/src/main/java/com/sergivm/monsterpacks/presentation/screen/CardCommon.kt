@@ -1,32 +1,80 @@
 package com.sergivm.monsterpacks.presentation.screen
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameMillis
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.engine.GameEngine
-import com.sergivm.monsterpacks.domain.model.*
+import com.sergivm.monsterpacks.domain.model.Card
+import com.sergivm.monsterpacks.domain.model.PlayerState
+import com.sergivm.monsterpacks.domain.model.Rarity
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
 import java.util.Locale
@@ -50,8 +98,8 @@ data class Particle(
 fun NewTag(
     modifier: Modifier = Modifier,
     fontSize: TextUnit = 12.sp,
-    horizontalPadding: Dp = 8.dp,
-    verticalPadding: Dp = 2.dp,
+    horizontalPadding: Dp = 10.dp,
+    verticalPadding: Dp = 4.dp,
     minWidth: Dp = Dp.Unspecified
 ) {
     val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
@@ -65,13 +113,15 @@ fun NewTag(
     Surface(
         color = MaterialTheme.colorScheme.primary,
         shape = RoundedCornerShape(4.dp),
-        modifier = modifier.graphicsLayer {
-            scaleX = pulseScale
-            scaleY = pulseScale
-        }
+        modifier = modifier
+            .widthIn(min = minWidth)
+            .graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+            }
     ) {
         Box(
-            modifier = Modifier.widthIn(min = minWidth).padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            modifier = Modifier.padding(horizontal = horizontalPadding, vertical = verticalPadding),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -264,8 +314,8 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
             Spacer(Modifier.height(4.dp))
             NewTag(
                 fontSize = 8.sp,
-                horizontalPadding = 4.dp,
-                verticalPadding = 1.dp,
+                horizontalPadding = 8.dp,
+                verticalPadding = 2.dp,
                 minWidth = 50.dp
             )
         } else {
@@ -279,9 +329,9 @@ fun CardRevealAnimationContainer(
     card: Card,
     isNewCard: Boolean,
     copyCount: Int,
+    cardIndex: Int,
+    totalCards: Int,
     modifier: Modifier = Modifier,
-    header: @Composable ColumnScope.() -> Unit,
-    footer: @Composable ColumnScope.() -> Unit,
     onTap: () -> Unit
 ) {
     val shakeAnim = remember { Animatable(0f) }
@@ -334,11 +384,17 @@ fun CardRevealAnimationContainer(
                 .fillMaxSize()
                 .clickable { onTap() }
                 .graphicsLayer { translationX = shakeAnim.value },
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-             header()
+             Text(
+                text = stringResource(R.string.card_reveal_progress, cardIndex + 1, totalCards),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                letterSpacing = 2.sp
+             )
 
-             Spacer(Modifier.weight(1f))
+             Spacer(Modifier.height(16.dp)) 
 
              AnimatedContent(
                 targetState = card,
@@ -376,9 +432,14 @@ fun CardRevealAnimationContainer(
                 }
             }
 
-            Spacer(Modifier.weight(1.2f))
-            footer()
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(16.dp)) 
+            
+            Text(
+                text = stringResource(R.string.tap_to_continue),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.4f),
+                letterSpacing = 1.sp
+            )
         }
     }
 }
@@ -388,8 +449,7 @@ fun SummaryScreen(
     cards: List<Card>,
     playerState: PlayerState,
     onSave: () -> Unit,
-    title: String = stringResource(R.string.pack_opened),
-    actionLabel: String = stringResource(R.string.done)
+    title: String = stringResource(R.string.pack_opened)
 ) {
     val totalCoins = cards.sumOf { it.coinReward }
     val totalGems = cards.sumOf { it.gemReward }
@@ -436,7 +496,7 @@ fun SummaryScreen(
         Spacer(Modifier.height(24.dp))
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
+            columns = GridCells.Fixed(4), 
             contentPadding = PaddingValues(bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -454,7 +514,7 @@ fun SummaryScreen(
             modifier = Modifier.fillMaxWidth(0.8f).height(56.dp),
             shape = RoundedCornerShape(28.dp)
         ) {
-            Text(actionLabel, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+            Text(stringResource(R.string.done), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
         Spacer(Modifier.height(24.dp))
