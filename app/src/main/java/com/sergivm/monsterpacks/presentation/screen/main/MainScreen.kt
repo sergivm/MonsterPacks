@@ -288,7 +288,7 @@ private fun PackCounterWithTimer(available: Int, max: Int, remainingMs: Long) {
 // ── Card Reveal ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun CardRevealScreen(
+fun CardRevealScreen(
     card: Card,
     cardIndex: Int,
     totalCards: Int,
@@ -360,7 +360,7 @@ private fun CardRevealScreen(
                 letterSpacing = 2.sp
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(32.dp))
 
             AnimatedContent(
                 targetState = card,
@@ -375,14 +375,43 @@ private fun CardRevealScreen(
                 },
                 label = "CardSlide"
             ) { currentCard ->
-                CardView(
-                    card = currentCard,
-                    isNewCard = isNewCard,
-                    copyCount = copyCount,
-                    modifier = Modifier
-                        .fillMaxWidth(0.75f)
-                        .aspectRatio(0.65f)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    CardView(
+                        card = currentCard,
+                        isNewCard = false, // Handled outside to prevent clipping
+                        copyCount = copyCount,
+                        modifier = Modifier
+                            .fillMaxWidth(0.75f)
+                            .aspectRatio(0.65f)
+                    )
+
+                    if (isNewCard) {
+                        val pulseTransition = rememberInfiniteTransition(label = "NewPulse")
+                        val scale by pulseTransition.animateFloat(
+                            initialValue = 1f,
+                            targetValue = 1.15f,
+                            animationSpec = infiniteRepeatable(tween(600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+                            label = "Scale"
+                        )
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(4.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 12.dp, y = (-12).dp)
+                                .scale(scale)
+                        ) {
+                            Text(
+                                stringResource(R.string.new_card),
+                                color = Color.Black,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(Modifier.weight(0.1f))
@@ -540,7 +569,7 @@ fun CardView(
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(12.dp)
+                    .offset(x = 8.dp, y = (-8).dp)
                     .scale(scale)
             ) {
                 Text(
@@ -678,41 +707,43 @@ fun SummaryCardCell(card: Card, isNew: Boolean) {
         context.resources.getIdentifier(card.imageRes, "drawable", context.packageName)
     }
 
-    Box(
-        modifier = Modifier
-            .aspectRatio(0.65f)
-            .clip(RoundedCornerShape(8.dp))
-            .background(card.type.color.copy(alpha = 0.8f))
-            .border(1.dp, card.rarity.color.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        if (imageResId != 0) {
-            Image(
-                painter = painterResource(id = imageResId),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        }
-
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)))),
-            contentAlignment = Alignment.BottomCenter
+                .aspectRatio(0.65f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(card.type.color.copy(alpha = 0.8f))
+                .border(1.dp, card.rarity.color.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(4.dp)) {
-                Text(card.rarity.icon, fontSize = 16.sp)
-                if (isNew) {
-                    Text(
-                        stringResource(R.string.new_card).replace("!", ""),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 8.sp
-                    )
-                }
+            if (imageResId != 0) {
+                Image(
+                    painter = painterResource(id = imageResId),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
             }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)))),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Text(card.rarity.icon, fontSize = 16.sp, modifier = Modifier.padding(4.dp))
+            }
+        }
+        
+        if (isNew) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.new_card).replace("!", ""),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 10.sp
+            )
         }
     }
 }

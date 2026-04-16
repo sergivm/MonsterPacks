@@ -1,5 +1,6 @@
 package com.sergivm.monsterpacks.domain.engine
 
+import com.sergivm.monsterpacks.domain.Config
 import com.sergivm.monsterpacks.domain.model.*
 import kotlin.random.Random
 import java.util.concurrent.TimeUnit
@@ -23,12 +24,21 @@ object GameEngine {
     fun rollPack(
         pack: PackDefinition,
         collection: CardCollection,
+        playerState: PlayerState? = null,
         random: Random = Random.Default
     ): List<Card> {
         val drawnIds = mutableSetOf<Int>()
         val result = mutableListOf<Card>()
 
-        for (slotIndex in 0 until pack.cardCount) {
+        // Calculate dynamic card count (Support for Shop Upgrades)
+        val extraCards = when (pack.type) {
+            PackType.BASIC -> playerState?.basicPackCardCountLevel ?: 0
+            PackType.BONUS -> playerState?.freePackCardCountLevel ?: 0
+            else -> 0
+        }
+        val effectiveCount = pack.cardCount + extraCards
+
+        for (slotIndex in 0 until effectiveCount) {
             val rule = pack.slotRules.getOrNull(slotIndex)
             val rarity = resolveRarity(rule, random)
             val pool = buildPool(collection, rarity, pack.cardTypeFilter)
@@ -46,6 +56,8 @@ object GameEngine {
     }
 
     fun getPackRegenIntervalMs(regenLevel: Int): Long {
+        if (Config.DEV_BOOST) return TimeUnit.MINUTES.toMillis(1)
+
         return (BASE_PACK_REGEN_TIME_MS - (regenLevel * TimeUnit.MINUTES.toMillis(2)))
             .coerceAtLeast(TimeUnit.MINUTES.toMillis(1))
     }
@@ -89,15 +101,17 @@ object GameEngine {
         var gems = state.gems
         val copies = state.cardCopies.toMutableMap()
 
+        val multiplier = if (Config.DEV_BOOST) 100 else 1
+
         for (card in cards) {
-            coins += card.coinReward
-            gems += card.gemReward
+            coins += card.coinReward * multiplier
+            gems += card.gemReward * multiplier
             copies[card.id] = (copies[card.id] ?: 0) + 1
         }
 
         // Apply XP Multiplier
-        val multiplier = getXpMultiplier(state.xpMultiplierLevel)
-        val finalXp = (xpReward * multiplier).toLong()
+        val xpMultiplier = getXpMultiplier(state.xpMultiplierLevel)
+        val finalXp = (xpReward * xpMultiplier * multiplier).toLong()
 
         val newXp = state.xp + finalXp
         return state.copy(
@@ -119,7 +133,13 @@ object GameEngine {
 
     private fun resolveRarity(rule: SlotRule?, random: Random): Rarity {
         if (rule?.guaranteedRarity != null) return rule.guaranteedRarity
-        val defaults = Rarity.values().associateWith { it.baseDropWeight }
+
+        if (Config.DEV_BOOST) {
+            val allRarities = Rarity.entries.toTypedArray()
+            return allRarities[random.nextInt(allRarities.size)]
+        }
+
+        val defaults = Rarity.entries.associateWith { it.baseDropWeight }
         val table = rule?.rollTable ?: defaults
         val min = rule?.minimumRarity
         val effectiveTable = if (min != null) table.filter { it.key >= min } else table

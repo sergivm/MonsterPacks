@@ -77,7 +77,11 @@ class MainViewModel @Inject constructor(
             resolveSurprisePack(surpriseId, state.packDefinition) ?: state.packDefinition
         } else state.packDefinition
 
-        val cards = GameEngine.rollPack(effectivePack, state.activeCollection)
+        val cards = GameEngine.rollPack(
+            pack = effectivePack,
+            collection = state.activeCollection,
+            playerState = player
+        )
 
         viewModelScope.launch {
             repository.savePlayerState(consumedPlayer)

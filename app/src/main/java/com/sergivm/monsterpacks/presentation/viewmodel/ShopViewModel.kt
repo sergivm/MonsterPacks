@@ -3,6 +3,7 @@ package com.sergivm.monsterpacks.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sergivm.monsterpacks.data.repository.GameRepository
+import com.sergivm.monsterpacks.domain.Config
 import com.sergivm.monsterpacks.domain.engine.GameEngine
 import com.sergivm.monsterpacks.domain.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -84,7 +85,11 @@ class ShopViewModel @Inject constructor(
     fun claimFreePack() {
         val state = _uiState.value
         if (!state.playerState.isFreePackReady(System.currentTimeMillis())) return
-        val cards = GameEngine.rollPack(PackDataSource.freePack, CardDataSource.genesisCardCollection)
+        val cards = GameEngine.rollPack(
+            pack = PackDataSource.freePack,
+            collection = CardDataSource.genesisCardCollection,
+            playerState = state.playerState
+        )
         _uiState.update { it.copy(isOpeningFreePack = true, drawnCards = cards, currentCardIndex = 0, showSummary = false) }
     }
 
@@ -98,8 +103,9 @@ class ShopViewModel @Inject constructor(
     fun finishFreePack() {
         val state = _uiState.value
         viewModelScope.launch {
-            val gemReward = 5L + state.playerState.freePackGemYieldLevel * 5
-            val coinReward = state.playerState.freePackCoinYieldLevel * 100L
+            val multiplier = if (Config.DEV_BOOST) 100 else 1
+            val gemReward = (5L + state.playerState.freePackGemYieldLevel * 5) * multiplier
+            val coinReward = (state.playerState.freePackCoinYieldLevel * 100L) * multiplier
             val cooldownMs = freeCooldownMs(state.playerState.freePackCooldownLevel)
             
             val updated = GameEngine.applyPackResult(
@@ -191,7 +197,7 @@ class ShopViewModel @Inject constructor(
         val bRegen = state.basicPackRegenLevel
         upgrades.add(Upgrade(
             id = "basic_regen_t${bRegen + 1}",
-            name = "Basic Regen Speed",
+            name = "Basic Pack Regen Speed",
             description = "Reduces time to generate new basic packs.",
             currentValue = "${GameEngine.getPackRegenIntervalMs(bRegen) / 60000} min",
             nextValue = "${GameEngine.getPackRegenIntervalMs(bRegen + 1) / 60000} min",
@@ -202,7 +208,7 @@ class ShopViewModel @Inject constructor(
         val bCapacity = state.basicPackCapacityLevel
         upgrades.add(Upgrade(
             id = "basic_capacity_t${bCapacity + 1}",
-            name = "Basic Storage",
+            name = "Basic Pack Storage",
             description = "Increases max basic pack capacity.",
             currentValue = "${state.maxPacks}",
             nextValue = "${state.maxPacks + 10}",
@@ -213,7 +219,7 @@ class ShopViewModel @Inject constructor(
         val bCount = state.basicPackCardCountLevel
         upgrades.add(Upgrade(
             id = "basic_count_t${bCount + 1}",
-            name = "Basic Card Count",
+            name = "Basic Pack Cards Count",
             description = "Increases cards per basic pack.",
             currentValue = "${5 + bCount} cards",
             nextValue = "${5 + bCount + 1} cards",
@@ -247,8 +253,10 @@ class ShopViewModel @Inject constructor(
         return upgrades
     }
 
-    private fun freeCooldownMs(tier: Int): Long = 
-        maxOf(TimeUnit.MINUTES.toMillis(1), TimeUnit.MINUTES.toMillis(10) - tier * TimeUnit.MINUTES.toMillis(1))
+    private fun freeCooldownMs(tier: Int): Long {
+        if (Config.DEV_BOOST) return TimeUnit.MINUTES.toMillis(1)
+        return maxOf(TimeUnit.MINUTES.toMillis(1), TimeUnit.MINUTES.toMillis(10) - tier * TimeUnit.MINUTES.toMillis(1))
+    }
 
     private fun formatCooldown(ms: Long): String {
         val totalMinutes = ms / 60000
