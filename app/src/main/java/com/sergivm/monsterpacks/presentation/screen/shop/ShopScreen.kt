@@ -1,49 +1,27 @@
 package com.sergivm.monsterpacks.presentation.screen.shop
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.model.PackCost
 import com.sergivm.monsterpacks.domain.model.Upgrade
-import com.sergivm.monsterpacks.presentation.screen.CardRevealAnimationContainer
-import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
-import com.sergivm.monsterpacks.presentation.screen.SummaryScreen
-import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
-import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
+import com.sergivm.monsterpacks.presentation.screen.*
+import com.sergivm.monsterpacks.presentation.ui.theme.*
 import com.sergivm.monsterpacks.presentation.viewmodel.ShopViewModel
 
 @Composable
@@ -102,6 +80,10 @@ fun ShopScreen(
                         playerCoins = state.playerState.coins,
                         playerGems = state.playerState.gems,
                         onPurchase = { shopViewModel.purchaseUpgrade(upgrade) }
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = Color.White.copy(alpha = 0.05f)
                     )
                 }
             }
@@ -164,6 +146,7 @@ private fun FreePackRevealView(
                 cards = cards,
                 playerState = playerState,
                 title = stringResource(R.string.pack_summary),
+                xpReward = 5,
                 onSave = onFinish
             )
         }
@@ -266,7 +249,7 @@ private fun UpgradeRow(
         Spacer(Modifier.width(12.dp))
 
         Box(
-            modifier = Modifier.width(90.dp),
+            modifier = Modifier.width(110.dp),
             contentAlignment = Alignment.Center
         ) {
             if (upgrade.isMaxTier) {
@@ -280,14 +263,23 @@ private fun UpgradeRow(
                 Button(
                     onClick = onPurchase,
                     enabled = !levelLocked,
-                    colors = buttonColor
+                    colors = buttonColor,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.shop_upgrade_button), fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
+                        Text(
+                            stringResource(R.string.shop_upgrade_button), 
+                            fontWeight = FontWeight.ExtraBold, 
+                            fontSize = 10.sp,
+                            maxLines = 1
+                        )
                         Text(
                             formatCost(upgrade.cost),
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 9.sp
+                            fontSize = 9.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

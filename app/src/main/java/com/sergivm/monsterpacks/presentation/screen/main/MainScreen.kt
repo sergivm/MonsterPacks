@@ -1,45 +1,15 @@
 package com.sergivm.monsterpacks.presentation.screen.main
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,13 +27,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.domain.engine.GameEngine
-import com.sergivm.monsterpacks.domain.model.PackDefinition
-import com.sergivm.monsterpacks.domain.model.PackType
-import com.sergivm.monsterpacks.domain.model.PlayerState
-import com.sergivm.monsterpacks.presentation.screen.CardRevealAnimationContainer
-import com.sergivm.monsterpacks.presentation.screen.MonsterPacksTopBar
-import com.sergivm.monsterpacks.presentation.screen.SummaryScreen
-import com.sergivm.monsterpacks.presentation.screen.UsernameSetupScreen
+import com.sergivm.monsterpacks.domain.model.*
+import com.sergivm.monsterpacks.presentation.screen.*
 import com.sergivm.monsterpacks.presentation.ui.theme.BackgroundDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceDark
 import com.sergivm.monsterpacks.presentation.ui.theme.SurfaceVariantDark
@@ -113,6 +78,7 @@ fun MainScreen(
                     SummaryScreen(
                         cards = state.drawnCards,
                         playerState = playerState,
+                        xpReward = state.packDefinition.xpReward,
                         onSave = {
                             viewModel.saveSession()
                             onPackOpeningFinished()
