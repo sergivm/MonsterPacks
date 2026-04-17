@@ -72,4 +72,9 @@
     <string name="level_too_low">Level too low for this upgrade.</string>
     <string name="upgrade_purchased">Upgrade purchased!</string>
     <string name="already_max_tier">Already at max tier.</string>
+
+    <string name="exit_dialog_title">Exit Game</string>
+    <string name="exit_dialog_message">Are you sure you want to exit?</string>
+    <string name="exit_dialog_confirm">Exit</string>
+    <string name="exit_dialog_cancel">Stay</string>
 </resources>

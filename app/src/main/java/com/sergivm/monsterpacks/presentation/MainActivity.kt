@@ -2,29 +2,21 @@ package com.sergivm.monsterpacks.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
+import com.sergivm.monsterpacks.R
 import com.sergivm.monsterpacks.presentation.screen.collection.CollectionScreen
 import com.sergivm.monsterpacks.presentation.screen.main.MainScreen
 import com.sergivm.monsterpacks.presentation.screen.settings.SettingsScreen
@@ -39,7 +31,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MonsterPacksTheme {
-                MonsterPacksNavHost()
+                MonsterPacksNavHost(onExit = { finish() })
             }
         }
     }
@@ -61,12 +53,41 @@ private val bottomNavItems = listOf(
 
 @Composable
 fun MonsterPacksNavHost(
-    mainViewModel: MainViewModel = hiltViewModel()
+    mainViewModel: MainViewModel = hiltViewModel(),
+    onExit: () -> Unit
 ) {
     val navController = rememberNavController()
     val mainState by mainViewModel.uiState.collectAsState()
 
     var isOpeningPack by remember { mutableStateOf(false) }
+    var showExitDialog by remember { mutableStateOf(false) }
+
+    // Handle Back Button
+    BackHandler {
+        if (showExitDialog) {
+            showExitDialog = false
+        } else {
+            showExitDialog = true
+        }
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text(stringResource(R.string.exit_dialog_title)) },
+            text = { Text(stringResource(R.string.exit_dialog_message)) },
+            confirmButton = {
+                TextButton(onClick = onExit) {
+                    Text(stringResource(R.string.exit_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text(stringResource(R.string.exit_dialog_cancel))
+                }
+            }
+        )
+    }
 
     // Hide bottom bar if username is missing or a pack is opening
     val showBottomBar = !mainState.isFirstLaunch && !mainState.isLoading && !isOpeningPack

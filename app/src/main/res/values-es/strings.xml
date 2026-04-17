@@ -72,4 +72,9 @@
     <string name="level_too_low">Nivel demasiado bajo para esta mejora.</string>
     <string name="upgrade_purchased">¡Mejora comprada!</string>
     <string name="already_max_tier">Ya estás en el nivel máximo.</string>
+
+    <string name="exit_dialog_title">Salir del juego</string>
+    <string name="exit_dialog_message">¿Estás seguro de que quieres salir?</string>
+    <string name="exit_dialog_confirm">Salir</string>
+    <string name="exit_dialog_cancel">Quedarse</string>
 </resources>
